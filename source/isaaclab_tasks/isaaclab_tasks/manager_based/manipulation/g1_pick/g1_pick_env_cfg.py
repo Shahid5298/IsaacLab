@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 import copy
+import os
 import torch
 from dataclasses import MISSING
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg, Articulation, RigidObject
 from isaaclab.envs import ManagerBasedRLEnvCfg, ViewerCfg, ManagerBasedRLEnv
+from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
@@ -43,6 +45,26 @@ _RIGHT_HAND_BODIES = [
 
 # 10 distractor entity names — used across reward/termination/obs/event configs
 _DISTRACTOR_NAMES = [f"distractor_{i}" for i in range(1, 11)]
+
+# ── Grasp-goal shaping (UltraDexGrasp + FSWO, Misc./UltraDex.md, Misc./optimizer.md) ──
+# Defaults to False so the existing (working) env still trains out of the box today:
+# grasp_sampler/grasp_dataset/cube_5cm_grasps_valid.npz does not exist yet (it is
+# produced by the offline pipeline in grasp_sampler/README.md, which needs a GPU +
+# the ultradex conda env). Flip to True once that file exists AND _FIXED_GRASP_IDX
+# below has been set from grasp_selection/select_optimal_grasp.py's output.
+_ENABLE_GRASP_GOALS: bool = False
+# Set from grasp_sampler/grasp_selection/scores.json ("best_idx") after running
+# select_optimal_grasp.py. -1 is a deliberately invalid placeholder: SampleGraspGoal
+# raises rather than silently training against grasp 0.
+_FIXED_GRASP_IDX: int = -1
+_GRASP_LIBRARY_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "grasp_sampler", "grasp_dataset", "cube_5cm_grasps_valid.npz"
+)
+# Palm body for grasp-goal rewards; hand joints in mdp.grasp_goal.HAND_JOINT_NAMES order
+# (must match right_hand_action.joint_names below). Kept as a plain list (like
+# _RIGHT_HAND_BODIES above) so each RewTerm/CurrTerm site builds its own SceneEntityCfg
+# instance rather than sharing one mutable object across managers.
+_GRASP_GOAL_PALM_BODY = ["right_wrist_yaw_link"]
 
 
 def compute_task_reward(
@@ -567,6 +589,43 @@ class RewardsCfg:
         },
     )
 
+    # ── Grasp-goal shaping (added on top; task_reward + 5 penalties above are
+    # unchanged). Weight is per-step ramped 0→1 by GraspGoalCurriculum
+    # (mdp/grasp_goal_curriculum.py) via env._ggc_ramp, so these terms are near-zero
+    # early in training and only dominate once the base policy already reaches
+    # near the cube — see Misc./UltraDex.md S4.2 for why an un-ramped version
+    # plateaued. Set _ENABLE_GRASP_GOALS = False above to disable both.
+    grasp_goal_palm = RewTerm(
+        func=mdp.grasp_goal_palm_reward,
+        weight=1.0,
+        params={
+            "robot_cfg": SceneEntityCfg("robot", body_names=_GRASP_GOAL_PALM_BODY),
+            "object_cfg": SceneEntityCfg("target_object"),
+            "std": 0.15,
+        },
+    )
+
+    grasp_goal_hand = RewTerm(
+        func=mdp.grasp_goal_hand_config_reward,
+        weight=0.3,
+        params={
+            # preserve_order=True is load-bearing: SceneEntityCfg.resolve() otherwise
+            # returns joint_ids sorted by the articulation's own internal joint index
+            # (isaaclab.utils.string.resolve_matching_names), not by the order
+            # joint_names were given in. grasp_goal_hand_config_reward compares
+            # joint_pos[:, robot_cfg.joint_ids] directly against goal_joint_q, which
+            # is in mdp.HAND_JOINT_NAMES order (grasp_pose's column order) -- without
+            # this flag the two would only line up by coincidence of the USD's
+            # internal joint ordering happening to match finger order.
+            "robot_cfg": SceneEntityCfg(
+                "robot", body_names=_GRASP_GOAL_PALM_BODY, joint_names=mdp.HAND_JOINT_NAMES, preserve_order=True
+            ),
+            "object_cfg": SceneEntityCfg("target_object"),
+            "gate_std": 0.20,
+            "q_std": 0.5,
+        },
+    )
+
 @configclass
 class EventCfg:
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
@@ -653,6 +712,18 @@ class EventCfg:
     reset_distractor_9 = EventTerm(func=mdp.reset_root_state_uniform, mode="reset", params={"pose_range": {"x": (-0.03, 0.03), "y": (-0.03, 0.03), "z": (0.0, 0.0)}, "velocity_range": {}, "asset_cfg": SceneEntityCfg("distractor_9")})
     reset_distractor_10 = EventTerm(func=mdp.reset_root_state_uniform, mode="reset", params={"pose_range": {"x": (-0.03, 0.03), "y": (-0.03, 0.03), "z": (0.0, 0.0)}, "velocity_range": {}, "asset_cfg": SceneEntityCfg("distractor_10")})
 
+    # Grasp-goal assignment — must run AFTER reset_target_object (event terms run in
+    # declaration order) so the FSWO-selected grasp is transformed using the cube's
+    # freshly randomized pose, not its previous-episode pose.
+    sample_grasp_goal = EventTerm(
+        func=mdp.SampleGraspGoal,
+        mode="reset",
+        params={
+            "fixed_grasp_idx": _FIXED_GRASP_IDX,
+            "library_path": _GRASP_LIBRARY_PATH,
+        },
+    )
+
     # apply_high_friction_to_fingers = EventTerm(
     #     func=mdp.randomize_rigid_body_material,
     #     mode="startup", # Only runs once when the environment boots up
@@ -707,6 +778,24 @@ class TerminationsCfg:
     )
 
 @configclass
+class CurriculumCfg:
+    # Ramps grasp_goal_palm / grasp_goal_hand weight 0→1 as the base policy learns to
+    # reach (mdp/grasp_goal_curriculum.py). Independent of PickingCurriculumScheduler
+    # (mdp/curriculum.py), which is not used here and is left untouched.
+    grasp_goal_ramp = CurrTerm(
+        func=mdp.GraspGoalCurriculum,
+        params={
+            "robot_cfg": SceneEntityCfg("robot", body_names=_GRASP_GOAL_PALM_BODY),
+            "object_cfg": SceneEntityCfg("target_object"),
+            "history_size": 200,
+            "min_history": 20,
+            "phi_lo": 0.05,
+            "phi_hi": 0.55,
+        },
+    )
+
+
+@configclass
 class G1RightArmLiftEnvCfg_V2(ManagerBasedRLEnvCfg):
     # Initializes 4096 robots simultaneously on the GPU for massive parallel data collection
     scene: SceneCfg = SceneCfg(num_envs=4096, env_spacing=3.0)
@@ -720,8 +809,19 @@ class G1RightArmLiftEnvCfg_V2(ManagerBasedRLEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
-    
+    curriculum: CurriculumCfg = CurriculumCfg()
+
     def __post_init__(self):
+            # Grasp-goal shaping is additive on top of the existing (working) reward
+            # function. Disable cleanly if the offline grasp library hasn't been
+            # generated yet (see grasp_sampler/README.md) rather than crashing env
+            # construction — flip _ENABLE_GRASP_GOALS at the top of this file.
+            if not _ENABLE_GRASP_GOALS:
+                self.events.sample_grasp_goal = None
+                self.rewards.grasp_goal_palm = None
+                self.rewards.grasp_goal_hand = None
+                self.curriculum.grasp_goal_ramp = None
+
             # --- BASIC SIMULATION SETTINGS ---
             self.decimation = 4             
             self.episode_length_s = 8.0     

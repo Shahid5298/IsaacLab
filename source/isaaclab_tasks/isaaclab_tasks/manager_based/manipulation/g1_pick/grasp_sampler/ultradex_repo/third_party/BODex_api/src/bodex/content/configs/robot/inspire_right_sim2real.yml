@@ -1,0 +1,100 @@
+# DRAFT v4 -- schema matches BODex_api's real xhand_right_sim2real.yml; link/joint
+# names now match the ACTUAL file placed at
+# grasp_sampler/ultradex_repo/third_party/BODex_api/src/bodex/content/assets/robot/
+# inspire_hand/inspire_hand_right.urdf (2026-07-13, a dex_urdf-derived model per its
+# LICENSE.txt). This file's slave joints are ALREADY frozen to type="fixed" at the
+# empirically-measured USD postures (Misc./UltraDex.md S7.5's modification #3 is
+# done) and it already has proper zero-size "_tip" links -- no renaming/patching of
+# the URDF itself needed. Real collision meshes exist now too
+# (meshes/collision/*.obj), so collision_spheres below is unblocked in principle --
+# still needs gen_spheres.py actually run (an execution step, not done here).
+#
+# Target path: ultradex_repo/third_party/BODex_api/src/bodex/content/configs/robot/inspire_right_sim2real.yml
+
+robot_cfg:
+  kinematics:
+    use_root_pose: True
+    hand_pose_transfer_path: "hand_pose_transfer/inspire.yml"
+    usd_path: ""
+    usd_robot_root: "/robot"
+    isaac_usd_path: ""
+    usd_flip_joints: {}
+    usd_flip_joint_limits: []
+
+    urdf_path: robot/inspire_hand/inspire_hand_right.urdf
+    asset_root_path: robot/inspire_hand
+
+    base_link: "base"
+    # ee_link + link_names split mirrors xhand's own convention (ee_link = thumb,
+    # link_names = the other four). Real "_tip" links, confirmed in the file.
+    ee_link: "thumb_tip"
+    link_names: ["index_tip", "middle_tip", "ring_tip", "pinky_tip"]
+    lock_joints: null
+    extra_links: null
+
+    # All non-tip links in the chain (confirmed real names/hierarchy). "base" itself
+    # has no visual/collision geometry (zero-size root frame) so it's excluded here;
+    # "hand_base_link" is the actual palm body.
+    collision_link_names:
+      [
+        "hand_base_link",
+        "thumb_proximal_base", "thumb_proximal", "thumb_intermediate", "thumb_distal",
+        "index_proximal", "index_intermediate",
+        "middle_proximal", "middle_intermediate",
+        "ring_proximal", "ring_intermediate",
+        "pinky_proximal", "pinky_intermediate",
+      ]
+
+    # TODO -- needs gen_spheres.py (ultradex_repo) actually run against
+    # meshes/collision/*.obj, which now exist for real. Not fabricated here; xhand's
+    # own file (~2 spheres/link, radii 0.007-0.01 m) is a reasonable ballpark for
+    # sphere COUNT, not for these specific values.
+    collision_spheres: {}
+
+    collision_sphere_buffer: 0.0
+    extra_collision_spheres: {}
+    # Same structural pattern as xhand's own file: ignore collisions between a link
+    # and its immediate parent/child in the same finger chain.
+    self_collision_ignore:
+      {
+        "hand_base_link": ["thumb_proximal_base", "index_proximal", "middle_proximal", "ring_proximal", "pinky_proximal"],
+        "thumb_proximal_base": ["thumb_proximal"],
+        "thumb_proximal": ["thumb_intermediate"],
+        "thumb_intermediate": ["thumb_distal"],
+        "index_proximal": ["index_intermediate"],
+        "middle_proximal": ["middle_intermediate"],
+        "ring_proximal": ["ring_intermediate"],
+        "pinky_proximal": ["pinky_intermediate"],
+      }
+    self_collision_buffer: {}
+
+    use_global_cumul: True
+    mesh_link_names:
+      [
+        "hand_base_link",
+        "thumb_proximal_base", "thumb_proximal", "thumb_intermediate", "thumb_distal",
+        "index_proximal", "index_intermediate",
+        "middle_proximal", "middle_intermediate",
+        "ring_proximal", "ring_intermediate",
+        "pinky_proximal", "pinky_intermediate",
+      ]
+
+    cspace:
+      # 6 actuated (policy) joints ONLY -- confirmed real bare names (no "R_" prefix;
+      # that prefix only exists in the USD/g1_pick action space, see
+      # check_grasps_offline.ACTUATED_JOINT_NAMES for the mapping-by-order note).
+      joint_names:
+        [
+          "thumb_proximal_yaw_joint", "thumb_proximal_pitch_joint",
+          "index_proximal_joint", "middle_proximal_joint",
+          "ring_proximal_joint", "pinky_proximal_joint",
+        ]
+      # Open-hand seed pose, valid within this file's own ranges: thumb_yaw
+      # [0,1.308], thumb_pitch [0,0.6], fingers [0,1.47]. thumb_yaw=0.7 matches
+      # robot_cfg.py's G1_INSPIRE_CFG default sim pose (thumb splayed sideways,
+      # open hand); everything else at 0.0 (fully open) per that same default.
+      retract_config: [0.7, 0.0, 0.0, 0.0, 0.0, 0.0]
+      null_space_weight: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+      cspace_distance_weight: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+      max_jerk: 500.0
+      max_acceleration: 15.0

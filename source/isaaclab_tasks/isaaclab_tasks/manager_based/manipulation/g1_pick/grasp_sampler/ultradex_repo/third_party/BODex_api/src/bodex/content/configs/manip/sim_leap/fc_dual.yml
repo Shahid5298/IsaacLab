@@ -1,0 +1,69 @@
+world:
+  indicator: '{$OBJECT_CODE}'
+  template_path: "object/mytest/{$OBJECT_CODE}/mesh/simplified.obj"
+  additional_cfg_path: "collision_table.yml"
+  selection:
+    id_lst_path: object/mytest/object_list.json
+    id:
+    start: 0
+    end: 1
+    repeat: 1
+    shuffle: True 
+  base_info_path: object/mytest/{$OBJECT_CODE}/info/simplified.json
+  urdf_path: object/mytest/{$OBJECT_CODE}/urdf/coacd.urdf
+  fixed_scale_lst: [0.20]
+  fixed_pose_lst: [[0.0, 0.0, 0.0, 1, 0, 0, 0]]
+
+robot_file: "leap_dual.yml"
+robot_file_with_arm:
+base_cfg_file: "base_grasp.yml"
+particle_file: "particle_grasp_debug.yml"
+gradient_file: "gradient_grasp_fc.yml"
+
+exp_name: debug
+seed_num: 10
+seeder_cfg:
+  obj_sample:
+    num: 1280
+    inflate: 0.1
+    convex_hull: True
+    collision_free: True 
+  ik_init_q:
+  load_path: 
+  skip_transfer: False
+  t:  
+  r:
+  # q: [0.5, 0, 0.5, 0., 0.5, 0, 0.5, 0, 0.5, 0, 0.5, 0, 1.58, 0, -0.5, -0.5]
+  # ['j-1_1', 'j-2_1', 'j-3_1', 'j-4_1', 'j-5_1', 'j-6_1',   'j1_1', 'j0_1', 'j2_1', 'j3_1',   'j-1', 'j-2', 'j-3', 'j-4', 'j-5', 'j-6',   'j1', 'j0', 'j2', 'j3', 'j5', 'j4', 'j6', 'j7', 'j9', 'j8', 'j10', 'j11', 'j12', 'j13', 'j14', 'j15',    'j5_1', 'j4_1', 'j6_1', 'j7_1', 'j9_1', 'j8_1', 'j10_1', 'j11_1', 'j12_1', 'j13_1', 'j14_1', 'j15_1']
+  # right: [0.0, 0.26179939, 0.26179939, 0.26179939, 0.0, 0.26179939, 0.26179939, 0.26179939, 0.0, 0.26179939, 0.26179939, 0.26179939, 0.26179939, 1.57079633, 0.26179939, 0.26179939]
+  # left: [0.0, 0.26179939, 0.26179939, 0.26179939, 0.0, 0.26179939, 0.26179939, 0.26179939, 0.0, 0.26179939, 0.26179939, 0.26179939, 0.26179939, -1.57079633, 0.26179939, 0.26179939]
+  q: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,   0.26179939, 0, 0.26179939, 0.26179939,   0.0, 0.0, 0.0, 0.0, 0.0, 0.0,   0.26179939, 0, 0.26179939, 0.26179939, 0.26179939, 0, 0.26179939, 0.26179939, 0.26179939, 0, 0.26179939, 0.26179939, 0.26179939, 0.78539816, 0.26179939, 0.26179939,   0.26179939, 0, 0.26179939, 0.26179939, 0.26179939, 0, 0.26179939, 0.26179939, -0.34906585, -0.78539816, 0.34906585, 0.34906585]
+  jitter_angle: [[-15, -15, -15], [15, 15, 15]]
+  jitter_dist: [[0.0, -0.03, -0.03], [0.03, 0.03, 0.03]]
+
+grasp_contact_strategy:
+  contact_points_name: ['fingertip/1', 'fingertip_2/1', 'fingertip_3/1', 'thumb_fingertip/3', 'fingertip_1/1', 'fingertip_2_1/1', 'fingertip_3_1/1', 'thumb_fingertip_1/3']
+  opt_progress: [0.0, 0.6, 0.8]
+  distance: [0.03, 0.03, 0.0]
+  contact_query_mode: [-1, 0, 0]
+  save_qpos: [False, True]
+  max_ge_stage: 0
+
+grasp_cfg:
+  task_dict:
+    f: [0, 0, 1]
+    p: [0, 0, 0]
+    t: [0, 0, 0]
+    gamma: 180
+  ge_param:
+    type: 'qp'
+    miu_coef: [0.1, 0]
+    solver_type: 'batch_reluqp'
+    k_lower: 0.2
+    pressure_constraints:   # [contact_id_list, lower]
+      [[[0, 1, 2, 3, 4, 5, 6, 7], 1.0], 
+       [[0, 1, 4, 5], 0.4], 
+       [[3, 7], 0.5], 
+      ]
+    enable_density: False
+    solve_interval: 5

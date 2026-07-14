@@ -1,0 +1,1717 @@
+<robot name="xhand_dual">
+
+<!-- right  -->
+  <link name="base"/>
+
+  <link
+    name="right_hand_link">
+    <inertial>
+      <origin
+        xyz="-0.00366836214548078 0.0100351220466308 -0.0582695185384578"
+        rpy="0 0 0" />
+      <mass
+        value="0.53903004" />
+      <inertias
+        ixx="0.00046462"
+        ixy="0.00000004"
+        ixz="-0.00005128"
+        iyy="0.00064214"
+        iyz="0.00000217"
+        izz="0.00027541" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_link.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  
+  
+  
+  <!-- 创建中间链接用于连接各关节 -->
+    <link name="trans_x_link"/>
+    <link name="trans_y_link"/>
+    <link name="trans_z_link"/>
+    <link name="rot_x_link"/>
+    <link name="rot_y_link"/>
+
+    <!-- X方向平移关节 -->
+    <joint name="j-1" type="prismatic">
+      <parent link="base"/>
+      <child link="trans_x_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="-10" upper="10" effort="100" velocity="1"/>
+    </joint>
+
+    <!-- Y方向平移关节 -->
+    <joint name="j-2" type="prismatic">
+      <parent link="trans_x_link"/>
+      <child link="trans_y_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="-10" upper="10" effort="100" velocity="1"/>
+    </joint>
+
+    <!-- Z方向平移关节 -->
+    <joint name="j-3" type="prismatic">
+      <parent link="trans_y_link"/>
+      <child link="trans_z_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="-10" upper="10" effort="100" velocity="1"/>
+    </joint>
+
+    <!-- X轴旋转关节 -->
+    <joint name="j-4" type="revolute">
+      <parent link="trans_z_link"/>
+      <child link="rot_x_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="-6.28" upper="6.28" effort="100" velocity="1"/>
+    </joint>
+
+    <!-- Y轴旋转关节 -->
+    <joint name="j-5" type="revolute">
+      <parent link="rot_x_link"/>
+      <child link="rot_y_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="-6.28" upper="6.28" effort="100" velocity="1"/>
+    </joint>
+
+    <!-- Z轴旋转关节 -->
+    <joint name="j-6" type="revolute">
+      <parent link="rot_y_link"/>
+      <child link="right_hand_offset_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="-6.28" upper="6.28" effort="100" velocity="1"/>
+    </joint>
+  
+  <link name="right_hand_offset_link"/>
+  <joint name="base_joint" type="fixed">
+    <parent link="right_hand_offset_link"/>
+    <child link="right_hand_link"/>
+    <origin rpy="-1.57079 0 1.57079" xyz="-0.1 -0.03 -0.01"/>
+  </joint>
+
+  <link
+    name="right_hand_thumb_bend_link">
+    <inertial>
+      <origin
+        xyz="0.0144358799903648 -0.00116534489100676 -5.40665183231849E-05"
+        rpy="0 0 0" />
+      <mass
+        value="0.01174632" />
+      <inertia
+        ixx="0.00000062"
+        ixy="-0.00000004"
+        ixz="-0.00000007"
+        iyy="0.0000016"
+        iyz="0.00000000001"
+        izz="0.00000162" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_thumb_bend_link.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_thumb_bend_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_thumb_bend_joint"
+    type="revolute">
+    <origin
+      xyz="0.0228 0.0095 -0.0305"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_link" />
+    <child
+      link="right_hand_thumb_bend_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="0"
+      upper="1.832"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+  <link
+    name="right_hand_thumb_rota_link1">
+    <inertial>
+      <origin
+        xyz="0.0287681482733488 -0.00036176529547633 -0.00133929681686046"
+        rpy="0 0 0" />
+      <mass
+        value="0.13266642" />
+      <inertia
+        ixx="0.00001699"
+        ixy="-0.00000791"
+        ixz="-0.00000182"
+        iyy="0.00003679"
+        iyz="-0.00000196"
+        izz="0.00004374" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_thumb_rota_link1.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_thumb_rota_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_thumb_rota_joint1"
+    type="revolute">
+    <origin
+      xyz="0.028599 0.0083177 0.00178"
+      rpy="0.2618 0 0.0407" />
+    <parent
+      link="right_hand_thumb_bend_link" />
+    <child
+      link="right_hand_thumb_rota_link1" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-0.698"
+      upper="1.745"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="right_hand_thumb_rota_link2">
+    <inertial>
+      <origin
+        xyz="0.0225340009927979 -0.000881600697645881 -0.000614548321208525"
+        rpy="0 0 0" />
+      <mass
+        value="0.04336091" />
+      <inertia
+        ixx="0.00000388"
+        ixy="0.00000000001"
+        ixz="0.00000015"
+        iyy="0.00000902"
+        iyz="-0.00000042"
+        izz="0.00001046" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_thumb_rota_link2.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_thumb_rota_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_thumb_rota_joint2"
+    type="revolute">
+    <origin
+      xyz="0.0553 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_thumb_rota_link1" />
+    <child
+      link="right_hand_thumb_rota_link2" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="1.745"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="right_hand_index_bend_link">
+    <inertial>
+      <origin
+        xyz="0.000118997558760787 -0.000715851164577269 -0.0111903014853532"
+        rpy="0 0 0" />
+      <mass
+        value="0.06910833" />
+      <inertia
+        ixx="0.0000174"
+        ixy="0.00000001"
+        ixz="0.00000014"
+        iyy="0.00001677"
+        iyz="-0.00000012"
+        izz="0.00000345" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_index_bend_link.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_index_bend_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_index_bend_joint"
+    type="revolute">
+    <origin
+      xyz="0.0265 0.0065 -0.0899"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_link" />
+    <child
+      link="right_hand_index_bend_link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="-0.174"
+      upper="0.174"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+  <link
+    name="right_hand_index_rota_link1">
+    <inertial>
+      <origin
+        xyz="0.000133008106573459 0.000632930512954057 -0.0355868719939061"
+        rpy="0 0 0" />
+      <mass
+        value="0.06298297" />
+      <inertia
+        ixx="0.00001738"
+        ixy="0.00000000001"
+        ixz="0.00000028"
+        iyy="0.00001686"
+        iyz="0.00000019"
+        izz="0.0000032" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_index_rota_link1.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_index_rota_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_index_joint1"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0178"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_index_bend_link" />
+    <child
+      link="right_hand_index_rota_link1" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="right_hand_index_rota_link2">
+    <inertial>
+      <origin
+        xyz="-0.000248361661985549 0.00119905190206764 -0.0213789854478675"
+        rpy="0 0 0" />
+      <mass
+        value="0.01588724" />
+      <inertia
+        ixx="0.00000277"
+        ixy="0.00000000001"
+        ixz="0.00000012"
+        iyy="0.00000283"
+        iyz="0.00000007"
+        izz="0.00000085" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_index_rota_link2.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_index_rota_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_index_joint2"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0558"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_index_rota_link1" />
+    <child
+      link="right_hand_index_rota_link2" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+
+  <link
+    name="right_hand_mid_link1">
+    <inertial>
+      <origin
+        xyz="3.58049083993136E-05 0.000530417592106078 -0.0332784671157236"
+        rpy="0 0 0" />
+      <mass
+        value="0.06298297" />
+      <inertia
+        ixx="0.00001738"
+        ixy="0.00000000001"
+        ixz="0.00000028"
+        iyy="0.00001686"
+        iyz="0.00000019"
+        izz="0.0000032" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_mid_link1.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_mid_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_mid_joint1"
+    type="revolute">
+    <origin
+      xyz="0.004 0.0065 -0.1082"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_link" />
+    <child
+      link="right_hand_mid_link1" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="right_hand_mid_link2">
+    <inertial>
+      <origin
+        xyz="-0.000248364601983051 0.00119905076177324 -0.0213789908421273"
+        rpy="0 0 0" />
+      <mass
+        value="0.01624108" />
+      <inertia
+        ixx="0.00000281"
+        ixy="0.00000000001"
+        ixz="0.00000012"
+        iyy="0.00000287"
+        iyz="0.00000007"
+        izz="0.00000086" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_mid_link2.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_mid_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_mid_joint2"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0558"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_mid_link1" />
+    <child
+      link="right_hand_mid_link2" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="right_hand_ring_link1">
+    <inertial>
+      <origin
+        xyz="3.58049083615322E-05 0.000530417592105594 -0.0332784671157224"
+        rpy="0 0 0" />
+      <mass
+        value="0.06298297" />
+      <inertia
+        ixx="0.00001738"
+        ixy="0.00000000001"
+        ixz="0.00000028"
+        iyy="0.00001686"
+        iyz="0.00000019"
+        izz="0.0000032" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_ring_link1.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_ring_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_ring_joint1"
+    type="revolute">
+    <origin
+      xyz="-0.016 0.0065 -0.1052"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_link" />
+    <child
+      link="right_hand_ring_link1" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="right_hand_ring_link2">
+    <inertial>
+      <origin
+        xyz="-0.000248364602035429 0.00119905076177346 -0.0213789908421257"
+        rpy="0 0 0" />
+      <mass
+        value="0.01624108" />
+      <inertia
+        ixx="0.00000281"
+        ixy="0.00000000001"
+        ixz="0.00000012"
+        iyy="0.00000287"
+        iyz="0.00000007"
+        izz="0.00000086" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_ring_link2.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_ring_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_ring_joint2"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0558"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_ring_link1" />
+    <child
+      link="right_hand_ring_link2" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="right_hand_pinky_link1">
+    <inertial>
+      <origin
+        xyz="3.58049083611298E-05 0.000530417592105422 -0.0332784671157224"
+        rpy="0 0 0" />
+      <mass
+        value="0.06298297" />
+      <inertia
+        ixx="0.00001738"
+        ixy="0.00000000001"
+        ixz="0.00000028"
+        iyy="0.00001686"
+        iyz="0.00000019"
+        izz="0.0000032" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_pinky_link1.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_pinky_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_pinky_joint1"
+    type="revolute">
+    <origin
+      xyz="-0.036 0.0065 -0.1022"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_link" />
+    <child
+      link="right_hand_pinky_link1" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="right_hand_pinky_link2">
+    <inertial>
+      <origin
+        xyz="-0.000248361662015334 0.0011990519020671 -0.0213789854478658"
+        rpy="0 0 0" />
+      <mass
+        value="0.01624108" />
+      <inertia
+        ixx="0.00000281"
+        ixy="0.00000000001"
+        ixz="0.00000012"
+        iyy="0.00000287"
+        iyz="0.00000007"
+        izz="0.00000086" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_pinky_link2.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/right_hand_pinky_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hand_pinky_joint2"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0558"
+      rpy="0 0 0" />
+    <parent
+      link="right_hand_pinky_link1" />
+    <child
+      link="right_hand_pinky_link2" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="1.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+
+
+<!-- left -->
+
+
+  <link
+    name="left_hand_link">
+    <inertial>
+      <origin
+        xyz="-0.00332669287155695 -0.0101781679017775 -0.0570610488181998"
+        rpy="0 0 0" />
+      <mass
+        value="0.53910397" />
+      <inertia
+        ixx="0.00046461"
+        ixy="-0.0000027"
+        ixz="-0.00005111"
+        iyy="0.00064437"
+        iyz="-0.00000218"
+        izz="0.00027759" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_link.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+
+
+
+    <!-- 创建中间链接用于连接各关节 -->
+  <link name="trans_x_link_1"/>
+  <link name="trans_y_link_1"/>
+  <link name="trans_z_link_1"/>
+  <link name="rot_x_link_1"/>
+  <link name="rot_y_link_1"/>
+
+  <!-- X方向平移关节 -->
+  <joint name="j-1_1" type="prismatic">
+    <parent link="base"/>
+    <child link="trans_x_link_1"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-10" upper="10" effort="100" velocity="1"/>
+  </joint>
+
+  <!-- Y方向平移关节 -->
+  <joint name="j-2_1" type="prismatic">
+    <parent link="trans_x_link_1"/>
+    <child link="trans_y_link_1"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-10" upper="10" effort="100" velocity="1"/>
+  </joint>
+
+  <!-- Z方向平移关节 -->
+  <joint name="j-3_1" type="prismatic">
+    <parent link="trans_y_link_1"/>
+    <child link="trans_z_link_1"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-10" upper="10" effort="100" velocity="1"/>
+  </joint>
+
+  <!-- X轴旋转关节 -->
+  <joint name="j-4_1" type="revolute">
+    <parent link="trans_z_link_1"/>
+    <child link="rot_x_link_1"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-6.28" upper="6.28" effort="100" velocity="1"/>
+  </joint>
+
+  <!-- Y轴旋转关节 -->
+  <joint name="j-5_1" type="revolute">
+    <parent link="rot_x_link_1"/>
+    <child link="rot_y_link_1"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-6.28" upper="6.28" effort="100" velocity="1"/>
+  </joint>
+
+  <!-- Z轴旋转关节 -->
+  <joint name="j-6_1" type="revolute">
+    <parent link="rot_y_link_1"/>
+    <child link="left_hand_offset_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-6.28" upper="6.28" effort="100" velocity="1"/>
+  </joint>
+
+
+
+<link name="left_hand_offset_link"/>
+<joint name="base_joint_1" type="fixed">
+    <parent link="left_hand_offset_link"/>
+    <child link="left_hand_link"/>
+    <origin rpy="1.57079 0.0 -1.57079" xyz="-0.1 0.03 -0.01"/>
+  </joint>
+
+
+  <link
+    name="left_hand_thumb_bend_link">
+    <inertial>
+      <origin
+        xyz="0.0144315029292586 0.00116653625408803 -6.50665966587562E-05"
+        rpy="0 0 0" />
+      <mass
+        value="0.0118729" />
+      <inertia
+        ixx="0.00000062"
+        ixy="0.00000004"
+        ixz="-0.00000008"
+        iyy="0.0000016"
+        iyz="0.00000000001"
+        izz="0.00000162" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_thumb_bend_link.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_thumb_bend_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hand_thumb_bend_joint"
+    type="revolute">
+    <origin
+      xyz="0.0228 -0.0095 -0.0305"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_link" />
+    <child
+      link="left_hand_thumb_bend_link" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="0"
+      upper="1.832"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+  <link
+    name="left_hand_thumb_rota_link1">
+    <inertial>
+      <origin
+        xyz="0.028699400584835 0.000353013004294657 -0.0013521057380018"
+        rpy="0 0 0" />
+      <mass
+        value="0.13268494" />
+      <inertia
+        ixx="0.00001702"
+        ixy="0.00000762"
+        ixz="-0.00000176"
+        iyy="0.00003592"
+        iyz="0.00000197"
+        izz="0.00004285" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_thumb_rota_link1.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_thumb_rota_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hand_thumb_rota_joint1"
+    type="revolute">
+    <origin
+      xyz="0.028599 -0.0083177 0.00178"
+      rpy="-0.2618 0 -0.0407" />
+    <parent
+      link="left_hand_thumb_bend_link" />
+    <child
+      link="left_hand_thumb_rota_link1" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-0.698"
+      upper="1.745"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="left_hand_thumb_rota_link2">
+    <inertial>
+      <origin
+        xyz="0.0228414266462457 0.000460794125797265 -0.000578251645405752"
+        rpy="0 0 0" />
+      <mass
+        value="0.03536566" />
+      <inertia
+        ixx="0.00000353"
+        ixy="-0.0000001"
+        ixz="0.00000021"
+        iyy="0.00000785"
+        iyz="0.00000038"
+        izz="0.00000898" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_thumb_rota_link2.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_thumb_rota_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hand_thumb_rota_joint2"
+    type="revolute">
+    <origin
+      xyz="0.0553 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_thumb_rota_link1" />
+    <child
+      link="left_hand_thumb_rota_link2" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="1.745"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="left_hand_index_bend_link">
+    <inertial>
+      <origin
+        xyz="-0.000388464456994867 0.000992075604557427 -0.00970333167554097"
+        rpy="0 0 0" />
+      <mass
+        value="0.06910833" />
+      <inertia
+        ixx="0.0000174"
+        ixy="0.00000000001"
+        ixz="0.00000000001"
+        iyy="0.00001677"
+        iyz="0.00000013"
+        izz="0.00000345" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_index_bend_link.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="left_hand_index_bend_joint"
+    type="revolute">
+    <origin
+      xyz="0.0265 -0.0065 -0.0899"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_link" />
+    <child
+      link="left_hand_index_bend_link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="-0.174"
+      upper="0.174"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+  <link
+    name="left_hand_index_rota_link1">
+    <inertial>
+      <origin
+        xyz="-3.58049083604185E-05 -0.00053041759210529 -0.0332784671157223"
+        rpy="0 0 0" />
+      <mass
+        value="0.06298297" />
+      <inertia
+        ixx="0.00001738"
+        ixy="0.00000000001"
+        ixz="-0.00000028"
+        iyy="0.00001686"
+        iyz="-0.00000019"
+        izz="0.0000032" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_index_rota_link1.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <!-- <geometry>
+        <mesh
+          filename="meshes/left_hand_index_rota_x_link1.STL" />          
+      </geometry> -->
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_index_rota_link1.STL" />          
+      </geometry>
+
+    </collision>
+  </link>
+  <joint
+    name="left_hand_index_joint1"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0178"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_index_bend_link" />
+    <child
+      link="left_hand_index_rota_link1" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="left_hand_index_rota_link2">
+    <inertial>
+      <origin
+        xyz="0.000248361662016118 -0.00119905190206697 -0.0213789854478661"
+        rpy="0 0 0" />
+      <mass
+        value="0.01588724" />
+      <inertia
+        ixx="0.00000277"
+        ixy="0.00000000001"
+        ixz="-0.00000012"
+        iyy="0.00000283"
+        iyz="-0.00000007"
+        izz="0.00000085" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_index_rota_link2.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_index_rota_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hand_index_joint2"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0558"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_index_rota_link1" />
+    <child
+      link="left_hand_index_rota_link2" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="left_hand_mid_link1">
+    <inertial>
+      <origin
+        xyz="-3.58049083603916E-05 -0.000530417592105155 -0.0332784671157224"
+        rpy="0 0 0" />
+      <mass
+        value="0.06298297" />
+      <inertia
+        ixx="0.00001738"
+        ixy="0.00000000001"
+        ixz="-0.00000028"
+        iyy="0.00001686"
+        iyz="-0.00000019"
+        izz="0.0000032" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_mid_link1.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_mid_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hand_mid_joint1"
+    type="revolute">
+    <origin
+      xyz="0.004 -0.0065 -0.1082"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_link" />
+    <child
+      link="left_hand_mid_link1" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="left_hand_mid_link2">
+    <inertial>
+      <origin
+        xyz="0.000248361662016048 -0.00119905190206678 -0.0213789854478656"
+        rpy="0 0 0" />
+      <mass
+        value="0.01588724" />
+      <inertia
+        ixx="0.00000277"
+        ixy="0.00000000001"
+        ixz="-0.00000012"
+        iyy="0.00000283"
+        iyz="-0.00000007"
+        izz="0.00000085" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_mid_link2.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_mid_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hand_mid_joint2"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0558"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_mid_link1" />
+    <child
+      link="left_hand_mid_link2" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="left_hand_ring_link1">
+    <inertial>
+      <origin
+        xyz="-3.58049083603491E-05 -0.000530417592105894 -0.0332784671157224"
+        rpy="0 0 0" />
+      <mass
+        value="0.06298297" />
+      <inertia
+        ixx="0.00001738"
+        ixy="0.00000000001"
+        ixz="-0.00000028"
+        iyy="0.00001686"
+        iyz="-0.00000019"
+        izz="0.0000032" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_ring_link1.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_ring_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hand_ring_joint1"
+    type="revolute">
+    <origin
+      xyz="-0.016 -0.0065 -0.1052"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_link" />
+    <child
+      link="left_hand_ring_link1" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="left_hand_ring_link2">
+    <inertial>
+      <origin
+        xyz="0.000248361662016028 -0.0011990519020675 -0.0213789854478657"
+        rpy="0 0 0" />
+      <mass
+        value="0.01588724" />
+      <inertia
+        ixx="0.00000277"
+        ixy="0.00000000001"
+        ixz="-0.00000012"
+        iyy="0.00000283"
+        iyz="-0.00000007"
+        izz="0.00000085" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_ring_link2.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_ring_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hand_ring_joint2"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0558"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_ring_link1" />
+    <child
+      link="left_hand_ring_link2" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="left_hand_pinky_link1">
+    <inertial>
+      <origin
+        xyz="-3.58049083603318E-05 -0.000530417592106195 -0.0332784671157224"
+        rpy="0 0 0" />
+      <mass
+        value="0.06298297" />
+      <inertia
+        ixx="0.00001738"
+        ixy="0.00000000001"
+        ixz="-0.00000028"
+        iyy="0.00001686"
+        iyz="-0.00000019"
+        izz="0.0000032" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_pinky_link1.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_pinky_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hand_pinky_joint1"
+    type="revolute">
+    <origin
+      xyz="-0.036 -0.0065 -0.1022"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_link" />
+    <child
+      link="left_hand_pinky_link1" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="1.1"
+      velocity="8.63" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+  <link
+    name="left_hand_pinky_link2">
+    <inertial>
+      <origin
+        xyz="0.000248361696242753 -0.00119905185762272 -0.0213789857007834"
+        rpy="0 0 0" />
+      <mass
+        value="0.01588724" />
+      <inertia
+        ixx="0.00000277"
+        ixy="0.00000000001"
+        ixz="-0.00000012"
+        iyy="0.00000283"
+        iyz="-0.00000007"
+        izz="0.00000085" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_pinky_link2.STL" />
+      </geometry>
+      <material
+        name="RAL_9005_Jet_Black">
+        <color
+          rgba="0.055 0.055 0.063 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/left_hand_pinky_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hand_pinky_joint2"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0558"
+      rpy="0 0 0" />
+    <parent
+      link="left_hand_pinky_link1" />
+    <child
+      link="left_hand_pinky_link2" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="0"
+      upper="1.919"
+      effort="0.4"
+      velocity="14.38" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+</robot>

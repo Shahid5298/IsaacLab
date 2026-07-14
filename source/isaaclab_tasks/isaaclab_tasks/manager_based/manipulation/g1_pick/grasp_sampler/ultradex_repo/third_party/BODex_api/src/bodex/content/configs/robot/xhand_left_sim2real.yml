@@ -1,0 +1,160 @@
+robot_cfg:
+  kinematics:
+    use_root_pose: True
+    hand_pose_transfer_path: "hand_pose_transfer/xhand.yml"
+    usd_path: ""
+    usd_robot_root: "/robot"
+    isaac_usd_path: ""
+    usd_flip_joints: {}
+    usd_flip_joint_limits: []
+
+    urdf_path:  robot/xhand/xhand_left.urdf
+    asset_root_path: robot/xhand
+    
+    base_link: "base"
+    ee_link: "left_hand_thumb_rota_link2"
+    link_names: ['left_hand_thumb_rota_link2', 'left_hand_index_rota_link2', 'left_hand_mid_link2', 'left_hand_ring_link2', 'left_hand_pinky_link2']
+    lock_joints: null
+    extra_links: null
+
+    collision_link_names: ['left_hand_link',
+      'left_hand_thumb_bend_link', 'left_hand_thumb_rota_link1', 'left_hand_thumb_rota_link2',
+      'left_hand_index_bend_link', 'left_hand_index_rota_link1', 'left_hand_index_rota_link2',
+      'left_hand_mid_link1', 'left_hand_mid_link2',
+      'left_hand_ring_link1', 'left_hand_ring_link2',
+      'left_hand_pinky_link1', 'left_hand_pinky_link2']
+    
+    collision_spheres:
+      left_hand_link:
+        - "center": [0.001, -0.011, -0.092]
+          "radius": 0.01028
+        - "center": [-0.035, -0.011, -0.098]
+          "radius": 0.00967
+        - "center": [0.017, -0.014, -0.03]
+          "radius": 0.00967
+        - "center": [0.004, -0.002, -0.104]
+          "radius": 0.00967
+        - "center": [-0.016, -0.002, -0.098]
+          "radius": 0.00967
+        - "center": [-0.034, -0.016, -0.031]
+          "radius": 0.00967
+
+      left_hand_index_bend_link:
+        - "center": [0.002, 0.0, -0.002]
+          "radius": 0.00685
+        - "center": [0.001, -0.004, -0.014]
+          "radius": 0.00685
+      left_hand_index_rota_link1:
+        - "center": [0.0, -0.002, -0.037]
+          "radius": 0.00963
+        - "center": [-0.0, -0.003, -0.022]
+          "radius": 0.00963
+      left_hand_index_rota_link2:
+        - "center": [-0.0, -0.001, -0.035] # tip
+          "radius": 0.0074
+        - "center": [-0.003, 0.0, -0.023]
+          "radius": 0.0074
+
+      left_hand_mid_link1:
+        - "center": [-0.0, 0.0, -0.026]
+          "radius": 0.00968
+        - "center": [0.0, 0.0, -0.037]
+          "radius": 0.00968
+      left_hand_mid_link2:
+        - "center": [-0.0, -0.001, -0.035] # tip
+          "radius": 0.0074
+        - "center": [-0.003, 0.0, -0.023]
+          "radius": 0.0074
+      left_hand_pinky_link1:
+        - "center": [-0.0, 0.0, -0.026]
+          "radius": 0.00968
+        - "center": [0.0, 0.0, -0.037]
+          "radius": 0.00968
+      left_hand_pinky_link2:
+        - "center": [-0.0, -0.001, -0.035] # tip
+          "radius": 0.0074
+        - "center": [-0.003, 0.0, -0.023]
+          "radius": 0.0074
+
+      left_hand_ring_link1:
+        - "center": [-0.0, 0.0, -0.026]
+          "radius": 0.00968
+        - "center": [0.0, 0.0, -0.037]
+          "radius": 0.00968
+      left_hand_ring_link2:
+        - "center": [-0.0, -0.001, -0.035] # tip
+          "radius": 0.0074
+        - "center": [-0.003, 0.0, -0.023]
+          "radius": 0.0074
+
+      left_hand_thumb_bend_link:
+        - "center": [0.015, 0.001, -0.0]
+          "radius": 0.00463
+        - "center": [0.015, -0.005, -0.001]
+          "radius": 0.00381
+      left_hand_thumb_rota_link1:
+        - "center": [0.027, 0.005, -0.001]
+          "radius": 0.01042
+        - "center": [0.026, -0.007, -0.002]
+          "radius": 0.01042
+      left_hand_thumb_rota_link2:
+        - "center": [0.032, 0.0, -0.002] # tip
+          "radius": 0.00883
+        - "center": [0.02, -0.001, -0.004]
+          "radius": 0.00776
+
+    collision_sphere_buffer: 0.0
+    extra_collision_spheres: {}
+    self_collision_ignore: {
+      'left_hand_link' : ['left_hand_thumb_bend_link', 'left_hand_index_bend_link', 'left_hand_mid_link1', 'left_hand_ring_link1', 'left_hand_pinky_link1'],
+
+      'left_hand_thumb_bend_link' : ['left_hand_thumb_rota_link1'],
+      'left_hand_thumb_rota_link1' : ['left_hand_thumb_rota_link2'],
+
+      'left_hand_index_bend_link': ['left_hand_index_rota_link1'],
+      'left_hand_index_rota_link1' : ['left_hand_index_rota_link2'],
+
+      'left_hand_mid_link1' : ['left_hand_mid_link2'],
+
+      'left_hand_ring_link1' : ['left_hand_ring_link2'],
+
+      'left_hand_pinky_link1' : ['left_hand_pinky_link2']
+    }
+    self_collision_buffer: {
+      'left_hand_link' : 0,
+
+      'left_hand_thumb_bend_link' : 0,
+      'left_hand_thumb_rota_link1' : 0,
+      'left_hand_thumb_rota_link2' : 0.001,
+
+      'left_hand_index_bend_link': 0,
+      'left_hand_index_rota_link1' : 0,
+      'left_hand_index_rota_link2' : 0.001,
+
+      'left_hand_mid_link1' : 0,
+      'left_hand_mid_link2' : 0.001,
+
+      'left_hand_ring_link1' : 0,
+      'left_hand_ring_link2' : 0.001,
+
+      'left_hand_pinky_link1' : 0,
+      'left_hand_pinky_link2' : 0.001,
+    }
+
+    use_global_cumul: True
+    mesh_link_names: ['left_hand_link',
+      'left_hand_thumb_bend_link', 'left_hand_thumb_rota_link1', 'left_hand_thumb_rota_link2',
+      'left_hand_index_bend_link', 'left_hand_index_rota_link1', 'left_hand_index_rota_link2',
+      'left_hand_mid_link1', 'left_hand_mid_link2',
+      'left_hand_ring_link1', 'left_hand_ring_link2',
+      'left_hand_pinky_link1', 'left_hand_pinky_link2']
+
+
+    cspace:
+      joint_names: ['left_hand_thumb_bend_joint', 'left_hand_thumb_rota_joint1', 'left_hand_thumb_rota_joint2', 'left_hand_index_bend_joint', 'left_hand_index_joint1', 'left_hand_index_joint2', 'left_hand_mid_joint1', 'left_hand_mid_joint2', 'left_hand_ring_joint1', 'left_hand_ring_joint2', 'left_hand_pinky_joint1', 'left_hand_pinky_joint2']
+      retract_config: [1.396, -0.175, 0.262,   0.087, 0.698, 0.262,   0.698, 0.262,   0.698, 0.262,   0.698, 0.262]
+      # retract_config: [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12]
+      null_space_weight: [1.0, 1.0, 1.0,   1.0, 1.0, 1.0,   1.0, 1.0,   1.0, 1.0,  1.0, 1.0]
+      cspace_distance_weight: [1.0, 1.0, 1.0,   1.0, 1.0, 1.0,   1.0, 1.0,   1.0, 1.0,   1.0, 1.0 ]
+      max_jerk: 500.0
+      max_acceleration: 15.0

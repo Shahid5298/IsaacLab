@@ -1,0 +1,154 @@
+############################################################
+# PHASE 4 CHECKPOINT DECISION PACKET
+# run: 2026-08-25_07-05-11_phase23v4_fingercontact_from_p1ckpt250
+# generated: 2026-08-25 02:23:35
+############################################################
+
+## available checkpoints
+model_250.pt model_300.pt model_350.pt model_400.pt model_450.pt model_500.pt model_550.pt model_600.pt model_650.pt model_700.pt model_749.pt 
+
+## contact_check.py -- min per-fingertip distance to cube SURFACE, 64 envs x 300 steps
+## NOTE: these read finger-link BODY ORIGINS (at the knuckle), not fingertip pads
+## ~2-3cm further along. Absolute values are inflated by a ~constant offset;
+## compare ACROSS checkpoints, don't read them as absolute contact.
+
+=== ckpt 300 ===
+thumb: min=+1.43cm mean=+2.58cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+index: min=+3.51cm mean=+4.64cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+3.05cm mean=+4.61cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+2.85cm mean=+4.83cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+3.27cm mean=+5.26cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+=== ckpt 400 ===
+thumb: min=+1.75cm mean=+3.98cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+index: min=+3.77cm mean=+5.37cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.70cm mean=+4.73cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+2.94cm mean=+4.54cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.89cm mean=+4.83cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+=== ckpt 450 ===
+thumb: min=+1.67cm mean=+4.16cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+index: min=+4.19cm mean=+5.63cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+3.60cm mean=+4.80cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.02cm mean=+4.50cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.66cm mean=+4.57cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+=== ckpt 500 ===
+thumb: min=+1.14cm mean=+4.26cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+index: min=+3.91cm mean=+5.34cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+3.95cm mean=+4.77cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.88cm mean=+4.67cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+3.14cm mean=+4.70cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+=== ckpt 550 ===
+thumb: min=+1.01cm mean=+4.34cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+index: min=+4.10cm mean=+4.92cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.59cm mean=+4.33cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+2.99cm mean=+4.53cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+1.86cm mean=+4.20cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+=== ckpt 600 ===
+thumb: min=+1.39cm mean=+4.53cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+index: min=+4.59cm mean=+5.74cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.95cm mean=+4.93cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.68cm mean=+5.31cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.20cm mean=+4.75cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+=== ckpt 650 ===
+thumb: min=+1.41cm mean=+4.51cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+index: min=+4.16cm mean=+5.46cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.70cm mean=+4.66cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.66cm mean=+5.37cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.21cm mean=+4.68cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+=== ckpt 700 ===
+thumb: min=+1.42cm mean=+4.46cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+index: min=+4.48cm mean=+5.51cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.23cm mean=+4.70cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.32cm mean=+5.55cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.08cm mean=+4.79cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+=== ckpt 749 ===
+thumb: min=+1.52cm mean=+4.44cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+index: min=+3.95cm mean=+5.08cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.36cm mean=+4.40cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.75cm mean=+5.21cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.33cm mean=+4.87cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+
+## hand_state_probe.py -- grasp_goal_hand internals + actual cube height reached
+## (palm gate, hand joint error q_err, per-joint breakdown; joint order is
+##  [thumb_yaw, thumb_pitch, index, middle, ring, pinky])
+
+=== ckpt 450 ===
+palm gate            : 0.6865   (1.0 = palm exactly at goal)
+q_err (hand joints)  : 1.2278 rad   L2 over 6 hand joints
+  per-joint |dq| mean: [0.885 0.113 0.39  0.165 0.291 0.609]
+  hand joint names   : ['R_thumb_proximal_yaw_joint', 'R_thumb_proximal_pitch_joint', 'R_index_proximal_joint', 'R_middle_proximal_joint', 'R_ring_proximal_joint', 'R_pinky_proximal_joint']
+
+----- where that error sits on the tanh curve -----
+  q_std  u=err/std     value   x weight   d(rew)/d(q_err)
+    0.3       4.09    0.0004     0.0015            0.0102  <-- CURRENT
+    0.5       2.46    0.0100     0.0100            0.0399  <-- before p23v2
+    0.5       2.46    0.0100     0.0402            0.1594
+    0.8       1.53    0.0609     0.2438            0.5824
+    1.0       1.23    0.1085     0.4341            0.7995
+    1.2       1.02    0.1571     0.6284            0.9275
+
+----- cube height above init (m) -----
+mean=0.000113  max=0.010403  p99=0.004022
+steps with cube >1cm up: 22/15360
+
+=== ckpt 600 ===
+palm gate            : 0.5610   (1.0 = palm exactly at goal)
+q_err (hand joints)  : 1.2725 rad   L2 over 6 hand joints
+  per-joint |dq| mean: [1.081 0.118 0.388 0.126 0.285 0.372]
+  hand joint names   : ['R_thumb_proximal_yaw_joint', 'R_thumb_proximal_pitch_joint', 'R_index_proximal_joint', 'R_middle_proximal_joint', 'R_ring_proximal_joint', 'R_pinky_proximal_joint']
+
+----- where that error sits on the tanh curve -----
+  q_std  u=err/std     value   x weight   d(rew)/d(q_err)
+    0.3       4.24    0.0002     0.0009            0.0062  <-- CURRENT
+    0.5       2.54    0.0069     0.0069            0.0273  <-- before p23v2
+    0.5       2.54    0.0069     0.0275            0.1092
+    0.8       1.59    0.0447     0.1790            0.4296
+    1.0       1.27    0.0816     0.3266            0.6057
+    1.2       1.06    0.1202     0.4807            0.7153
+
+----- cube height above init (m) -----
+mean=0.000072  max=0.010370  p99=0.002519
+steps with cube >1cm up: 5/15360
+
+=== ckpt 749 ===
+palm gate            : 0.5901   (1.0 = palm exactly at goal)
+q_err (hand joints)  : 1.2563 rad   L2 over 6 hand joints
+  per-joint |dq| mean: [1.024 0.113 0.388 0.205 0.285 0.389]
+  hand joint names   : ['R_thumb_proximal_yaw_joint', 'R_thumb_proximal_pitch_joint', 'R_index_proximal_joint', 'R_middle_proximal_joint', 'R_ring_proximal_joint', 'R_pinky_proximal_joint']
+
+----- where that error sits on the tanh curve -----
+  q_std  u=err/std     value   x weight   d(rew)/d(q_err)
+    0.3       4.19    0.0003     0.0011            0.0072  <-- CURRENT
+    0.5       2.51    0.0077     0.0077            0.0306  <-- before p23v2
+    0.5       2.51    0.0077     0.0308            0.1224
+    0.8       1.57    0.0489     0.1957            0.4690
+    1.0       1.26    0.0885     0.3540            0.6548
+    1.2       1.05    0.1295     0.5179            0.7684
+
+----- cube height above init (m) -----
+mean=0.000020  max=0.010418  p99=0.000491
+steps with cube >1cm up: 1/15360
+
+## TensorBoard curves -- watch finger_contact (did the new term actually engage?)
+## against contact_check above. If finger_contact climbs while measured distance
+## worsens, the term is being gamed like grasp_goal_hand was in phase23v3.
+
+--- Episode_Reward/finger_contact ---
+250:2.16e-05 262:0.00026 274:0.000176 286:0.0001278 298:8.833e-05 310:8.067e-05 322:9.592e-05 334:7.395e-05 346:0.000102 358:0.0001171 370:0.0001663 382:0.0002219 394:0.0002847 406:0.0003883 418:0.0004183 430:0.0004652 442:0.0005264 454:0.0004711 466:0.0005566 478:0.0005643 490:0.0007833 502:0.0007495 514:0.0006588 526:0.0006444 538:0.001059 550:0.000814 562:0.0009581 574:0.001161 586:0.001116 598:0.001231 610:0.001617 622:0.001558 634:0.002034 646:0.002859 658:0.004265 670:0.004228 682:0.006049 694:0.005591 706:0.006188 718:0.006484 730:0.005994 742:0.007358
+--- Episode_Reward/grasp_reach ---
+250:0.002082 262:0.03068 274:0.02807 286:0.02614 298:0.02189 310:0.02114 322:0.02459 334:0.02351 346:0.02568 358:0.02689 370:0.03099 382:0.03354 394:0.03415 406:0.03882 418:0.04307 430:0.04076 442:0.0486 454:0.04668 466:0.04965 478:0.04912 490:0.05191 502:0.05262 514:0.05565 526:0.05625 538:0.06176 550:0.06525 562:0.06884 574:0.07246 586:0.07538 598:0.0788 610:0.08029 622:0.08097 634:0.08684 646:0.08773 658:0.09171 670:0.09689 682:0.1021 694:0.1014 706:0.1005 718:0.1029 730:0.1034 742:0.1077
+--- Episode_Reward/grasp_goal_hand ---
+250:0.00156 262:0.02527 274:0.02804 286:0.03185 298:0.03517 310:0.03327 322:0.02775 334:0.02455 346:0.02248 358:0.02147 370:0.02155 382:0.01961 394:0.02058 406:0.02044 418:0.02212 430:0.02208 442:0.01978 454:0.02439 466:0.02439 478:0.0221 490:0.02251 502:0.02197 514:0.02301 526:0.02392 538:0.02014 550:0.02202 562:0.01936 574:0.01887 586:0.01668 598:0.0176 610:0.01575 622:0.01671 634:0.01669 646:0.01699 658:0.01785 670:0.0184 682:0.0212 694:0.02167 706:0.02238 718:0.02253 730:0.02641 742:0.02533
+--- Episode_Reward/grasp_goal_palm ---
+250:0.03359 262:0.559 274:0.6159 286:0.6597 298:0.694 310:0.7168 322:0.7358 334:0.7615 346:0.7953 358:0.8239 370:0.8498 382:0.8478 394:0.8824 406:0.8929 418:0.9248 430:0.9468 442:0.9131 454:0.9379 466:0.9531 478:0.9468 490:0.9758 502:0.9294 514:0.952 526:0.9664 538:0.9643 550:0.9318 562:0.9619 574:0.944 586:0.926 598:0.9359 610:0.9481 622:0.8827 634:0.9397 646:0.9162 658:0.9398 670:0.9567 682:0.9369 694:0.9797 706:0.9482 718:0.9788 730:0.9634 742:1.007
+--- Episode_Reward/grasp_envelope ---
+250:0.01645 262:0.3279 274:0.3421 286:0.3424 298:0.3435 310:0.3513 322:0.3617 334:0.3696 346:0.3912 358:0.3993 370:0.4243 382:0.4349 394:0.4425 406:0.4491 418:0.4782 430:0.4755 442:0.4945 454:0.4966 466:0.5034 478:0.4911 490:0.4928 502:0.498 514:0.5165 526:0.5174 538:0.5279 550:0.5328 562:0.5413 574:0.5423 586:0.5391 598:0.5536 610:0.5533 622:0.5371 634:0.5731 646:0.5611 658:0.5664 670:0.5847 682:0.6112 694:0.6155 706:0.6159 718:0.6264 730:0.6602 742:0.664
+--- Episode_Termination/target_lifted ---
+250:0.0002747 262:0.0204 274:0.009705 286:0.01321 298:0.0121 310:0.01021 322:0.01376 334:0.008682 346:0.008392 358:0.008423 370:0.004883 382:0.003326 394:0.006775 406:0.006012 418:0.004257 430:0.006546 442:0.00737 454:0.008392 466:0.005066 478:0.006912 490:0.007782 502:0.007706 514:0.01009 526:0.0127 538:0.01314 550:0.01189 562:0.009201 574:0.01639 586:0.01279 598:0.01454 610:0.01309 622:0.01247 634:0.01541 646:0.01193 658:0.01961 670:0.01305 682:0.01151 694:0.01941 706:0.0136 718:0.01482 730:0.01581 742:0.01466
+--- Policy/mean_noise_std ---
+250:0.2623 262:0.2626 274:0.2628 286:0.2634 298:0.2637 310:0.2641 322:0.2643 334:0.265 346:0.2654 358:0.265 370:0.2643 382:0.2646 394:0.2634 406:0.2625 418:0.2616 430:0.2615 442:0.2617 454:0.2604 466:0.2603 478:0.2607 490:0.2606 502:0.2608 514:0.2615 526:0.2611 538:0.2612 550:0.2613 562:0.2612 574:0.2607 586:0.2608 598:0.261 610:0.2612 622:0.2621 634:0.2625 646:0.2631 658:0.2635 670:0.2635 682:0.2645 694:0.2656 706:0.2656 718:0.2658 730:0.2664 742:0.2666
+--- Train/mean_reward ---
+250:0.5275 262:8.843 274:9.43 286:9.562 298:10.07 310:10.19 322:10.55 334:11.42 346:11.29 358:12.33 370:12.81 382:13.17 394:13.24 406:13.76 418:14.14 430:14.06 442:14.63 454:14.94 466:15.04 478:14.33 490:14.67 502:13.85 514:14.88 526:15.46 538:15.87 550:14.28 562:15.49 574:15.41 586:14.91 598:15.56 610:16.4 622:14.97 634:16.22 646:16.16 658:15.92 670:16.31 682:15.16 694:16.91 706:15.86 718:16.59 730:15.99 742:17.52
+
+## fallback auto-pick (lowest summed mean distance): 300
+## This is a BLIND argmin and is used ONLY if no decision arrives within
+## 60 min. Prefer a reasoned choice.

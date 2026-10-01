@@ -17,7 +17,6 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sensors import ContactSensorCfg
 from isaaclab.sim import CuboidCfg, RigidBodyMaterialCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg
 from isaaclab.utils import configclass
@@ -596,57 +595,6 @@ class SceneCfg(InteractiveSceneCfg):
     replicate_physics: bool = True # Ensures determinism across all 4096 parallel environments
     robot: ArticulationCfg = G1_INSPIRE_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
-    # "[Sufian Plan]" 2026-08-27: PhysX contact reporting on the five fingertip links,
-    # FILTERED to the target cube, so fingertip_contact_force_reward reads real newtons
-    # rather than inferring contact from geometry. Requires activate_contact_sensors=True
-    # on the robot spawn (set in robot_cfg.py). filter_prim_paths_expr is what produces
-    # the per-target force_matrix_w; without it only aggregate net force is available and
-    # contact with the tray would be indistinguishable from contact with the cube.
-    # "[Sufian Plan]" 2026-08-27: FIVE separate single-body contact sensors, one per
-    # fingertip, each filtered to the cube.
-    #
-    # It must be five sensors, not one five-body sensor. PhysX requires the filtered-pair
-    # count to match exactly: a 5-body sensor over 2048 envs expects 5*2048=10240 filter
-    # prims but only 2048 cubes exist, and it fails with
-    #   "Filter pattern ... did not match the correct number of entries (expected 10240,
-    #    found 2048)"
-    # That failure is NOT fatal -- training continues and force_matrix_w stays silently all
-    # zeros forever, which would have made the contact reward permanently dead. One body per
-    # sensor gives 1:1 counts.
-    #
-    # Also note the fully-qualified prim path: IsaacLab prim matching will not let ".*" cross
-    # a "/" boundary, and these bodies sit three levels below /Robot.
-    contact_thumb: ContactSensorCfg = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/g1_29dof_with_hand_rev_1_0/g1_right_hand_inspire_right_physics/right_hand/R_thumb_distal",
-        filter_prim_paths_expr=["{ENV_REGEX_NS}/TargetObject"],
-        history_length=1,
-        update_period=0.0,
-    )
-    contact_index: ContactSensorCfg = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/g1_29dof_with_hand_rev_1_0/g1_right_hand_inspire_right_physics/right_hand/R_index_intermediate",
-        filter_prim_paths_expr=["{ENV_REGEX_NS}/TargetObject"],
-        history_length=1,
-        update_period=0.0,
-    )
-    contact_middle: ContactSensorCfg = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/g1_29dof_with_hand_rev_1_0/g1_right_hand_inspire_right_physics/right_hand/R_middle_intermediate",
-        filter_prim_paths_expr=["{ENV_REGEX_NS}/TargetObject"],
-        history_length=1,
-        update_period=0.0,
-    )
-    contact_ring: ContactSensorCfg = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/g1_29dof_with_hand_rev_1_0/g1_right_hand_inspire_right_physics/right_hand/R_ring_intermediate",
-        filter_prim_paths_expr=["{ENV_REGEX_NS}/TargetObject"],
-        history_length=1,
-        update_period=0.0,
-    )
-    contact_pinky: ContactSensorCfg = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/g1_29dof_with_hand_rev_1_0/g1_right_hand_inspire_right_physics/right_hand/R_pinky_intermediate",
-        filter_prim_paths_expr=["{ENV_REGEX_NS}/TargetObject"],
-        history_length=1,
-        update_period=0.0,
-    )
-
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         init_state=AssetBaseCfg.InitialStateCfg(pos=[0.4, 0.0, 0.40]),
@@ -673,12 +621,6 @@ class SceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/TargetObject",
         spawn=sim_utils.CuboidCfg(
             size=(0.05, 0.05, 0.05), # Reduced to 5cm to require higher dexterity from the policy
-            # REQUIRED for the fingertip ContactSensor's force_matrix_w to populate: a
-            # FILTERED contact pair needs contact reporting on BOTH sides. With this off the
-            # sensor initialises cleanly and silently reports 0.000N forever -- verified by
-            # forcing the hand shut, which shoved the cube 6.7cm while every body still read
-            # exactly zero. That would have made the contact reward permanently dead.
-            activate_contact_sensors=True,
             physics_material=RigidBodyMaterialCfg(static_friction=1.0, dynamic_friction=1.0), # High friction prevents slipping
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -689,12 +631,7 @@ class SceneCfg(InteractiveSceneCfg):
                 # raised value -- was the likely bottleneck behind measured hand/cube interpenetration
             ),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.2), # Light enough to lift, heavy enough to drop realistically
-            # "[Sufian Plan]" 2026-08-27: rest_offset 0.002 holds a 2mm resting gap so
-            # hand<->cube interpenetration is bounded at 1-2mm (measured before this change:
-            # 445/478 steps interpenetrating, worst -1.71cm). Must match the hand's offsets
-            # in robot_cfg.py -- PhysX combines the two shapes' offsets, so raising only one
-            # side leaves the effective separation short of the target.
-            collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.02, rest_offset=0.002),
+            collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.35, 0.00, _OBJ_INIT_Z]),
     )
@@ -997,249 +934,525 @@ class ObservationsCfg:
 
 @configclass
 class RewardsCfg:
-    """"[Sufian Plan]" clean-slate reward set, 2026-08-27.
+    # =========================================================================================
+    # FROM-SCRATCH 5-PHASE CURRICULUM (started 2026-08-13). Every term below stays REGISTERED
+    # at all times; phases are advanced purely by editing weights (and task_reward's
+    # reach/grasp/lift/success_weight params) here and resuming into a new run -- never by
+    # adding/removing RewTerms or code. Each zeroed weight/param carries an inline comment with
+    # its real target value and the phase that turns it on, so advancing a phase is a pure
+    # find-and-restore, not a redesign.
+    #
+    # Current phase: 4 -- LIFT + SUCCESS (2026-08-21), resumed from checkpoint 699 (final) of
+    # phase2and3_merged_from_ckpt200. That merged run validated cleanly -- grasp_goal_palm
+    # plateaued ~iter 350-400 (1.12->1.35, then flat/noisy through 699) and task_reward/
+    # grasp_envelope similarly leveled off early, but a dedicated contact-distance diagnostic
+    # (contact_check.py, 64 envs x 300 steps) showed the actual finger-CLOSING behavior the
+    # is_grasped gate depends on kept improving the whole way: mean 4-finger surface distance
+    # 3.12cm(ckpt350) -> 2.74cm(500) -> 2.42cm(600) -> 2.29cm(699), thumb steady ~1.3-1.5cm
+    # throughout. Computed is_grasped roughly DOUBLED (~0.12 -> ~0.21) from ckpt350 to 699 --
+    # unlike every earlier phase handoff in this file, the metric Phase 4 actually depends on
+    # was still improving at the final checkpoint, not just noise_std shrinking for no gain, so
+    # this handoff used the FINAL checkpoint (699) instead of an earlier "preserve exploration"
+    # pick. See REWARD_CURRICULUM_LOG.md "[Phase 2+3 merged]" entry for the full data table.
+    #
+    # Prior phase (2+3 MERGED, 2026-08-21), resumed from checkpoint 200 of
+    # phase1_reach_palmpos_cuberot45 -- the from-scratch Phase 1 redesign (position-only
+    # grasp_goal_palm + a 45-degree cube spawn-yaw fix) that finally converged cleanly. See
+    # REWARD_CURRICULUM_LOG.md "Root cause reassessment" for the full Phase 1 story, and the
+    # entry logged the same day this merge was decided for why 2+3 were merged this time
+    # (short version: Phase 1 now leaves the policy in a roughly grasp-shaped starting
+    # posture as an emergent side effect of good positioning, which the user judged reduces
+    # the original merge risk -- a coarse Phase 2 reward letting the policy ignore the
+    # specific Phase 3 pose, see MDP_REPORT.md Sec 5.2.3 and this file's "What Didn't Work" --
+    # since Phase 1 no longer hands Phase 2/3 a blank slate to begin with).
+    #
+    #   Phase 1 (done): reach_rew + grasp_goal_palm (position-only during Phase 1, full pose
+    #                        from Phase 2+3 onward) + action_smoothness + joint_speed
+    #                        (tanh-bounded) + distractor_accel (inert here -- all distractors
+    #                        parked on the table margin in Isaac-G1-Pick-Empty-v0) +
+    #                        target_object_accel + sustained_reach_bonus (1cm average
+    #                        per-fingertip-to-surface-distance termination, held for 10
+    #                        consecutive steps -- see sustained_reach_termination)
+    #   Phase 2+3 (this run, merged 2026-08-21): + grasp_weight (pairwise-coverage grasp_rew
+    #                        in compute_task_reward) + grasp_envelope (standalone whole-hand
+    #                        coverage bonus) + grasp_goal_hand/reach (finger joint-angle +
+    #                        per-fingertip contact-point matching) + grasp_goal_palm's
+    #                        orient_weight back to 0.5 (full pose) + pose_gated_success (inert
+    #                        until Phase 4). No new PENALTY terms -- considered
+    #                        fingertip_impact but the plan earmarks it for Phase 5, and Phase
+    #                        1's existing safety net (target_object_accel, joint_speed +
+    #                        velocity_limit_sim) already covers most of that risk without
+    #                        evidence of a real problem.
+    #   Phase 4 v1 (started 2026-08-21, from ckpt 699, is_grasped-GATED lift): + lift_weight,
+    #                        success_weight (both 0.0 -> 1.0). Ran 500 iterations,
+    #                        target_lifted NEVER fired once -- is_grasped gate (~0.21 at
+    #                        handoff) made lift_cont_rew too small to be a learnable
+    #                        gradient. Superseded by v2 below, kept for the record.
+    #   Phase 4 v2 (this run, started 2026-08-21, from ckpt 699 then re-launched from ckpt
+    #                        450): is_grasped gate REMOVED from lift_cont_rew entirely (v1
+    #                        was gated, ungating alone from ckpt 699 STILL produced zero
+    #                        lifts over 350+ iterations -- noise_std was completely flat,
+    #                        pointing to an exploration-collapse problem, not just a
+    #                        reward-magnitude one). v2 adds a temporary bootstrap:
+    #                        lift_scale (steepens the reward slope near zero height) +
+    #                        lift_attempt_velocity (rewards the cube's upward VELOCITY, not
+    #                        height -- cheaper for exploration noise to stumble into than a
+    #                        lasting height gain) + lift_progress (logging-only milestone
+    #                        tracker). PLANNED MANUAL CUTOVER: once lift_progress shows the
+    #                        cube reliably reaching ~1-1.5cm, lift_attempt_velocity -> weight
+    #                        0.0 and lift_scale -> back down toward 2.0 -- reasoning in
+    #                        REWARD_CURRICULUM_LOG.md "[Phase 4 v2]" for why this needs a
+    #                        manual, time-limited cutover rather than relying on the tanh
+    #                        bound alone to stay safe indefinitely. Checkpoint: reverted
+    #                        from 699 to 450 specifically because the original reason to
+    #                        prefer 699 (is_grasped tightness) no longer applies once lift
+    #                        is ungated, while 450 retains more residual
+    #                        Policy/mean_noise_std (0.240 vs 0.218).
+    #                        ROUND 2 (lift_scale=6.0, vel weight=0.3, vel_scale=0.15): no
+    #                        measurable progress after 400+ iterations -- peak cube velocity
+    #                        observed was only ~1.6mm/s, so vel_scale=0.15 (tuned for a real
+    #                        ~15cm/s lift) meant the term paid out ~1% of its own max even
+    #                        at its best moment. Killed by the user's instruction.
+    #                        ROUND 3 (this run): lift_scale 6.0 -> 12.0, vel weight 0.3 ->
+    #                        1.0, vel_scale RECALIBRATED 0.15 -> 0.02 to match the actual
+    #                        mm/s-scale motion being explored rather than the eventual
+    #                        target lift speed -- see lift_attempt_velocity's own comment
+    #                        for the exact numbers.
+    #   Phase 5: + fingertip_impact, distractor_off_tray, distractor_drop, and the distractor
+    #            LAYOUT itself ramps Isaac-G1-Pick-Empty-v0 -> Stage1-v0 -> Stage2-v0 -> Pick-v0
+    #
+    #   Full revision history (bounding joint_speed_penalty, velocity_limit_sim, the
+    #   sustained_reach metric redefinition, four separate Phase 2/3 attempts before the root
+    #   cause was found, the Phase 1 redesign, and all supporting data) lives in
+    #   REWARD_CURRICULUM_LOG.md -- that history is what led to this design, but the
+    #   checkpoints most of it produced are no longer in use.
+    # =========================================================================================
 
-    THREE rewards and ONE penalty. Nothing else. Every previous term is deliberately gone.
-
-    Why the clean slate rather than another edit to the old set: on the adviser's judgment
-    the inherited reward stack (grown from siddharth's original) is too unstable to build
-    on, and carrying any of it forward risks pulling the policy back toward the same
-    behaviours. The record supports that -- the old set had 15 active terms, and the
-    project's whole history (see REWARD_CURRICULUM_LOG.md "WHAT DID NOT WORK") is of
-    geometric terms being satisfied while the cube never moved: proximity rewards maxed out
-    with the hand hovering, because position-controlled joints exert no force when commanded
-    to where they already rest.
-
-    The decisive fix here is `fingertip_contact`, which reads PhysX contact force. It is the
-    first term in this project that cannot be earned without actually pressing on the cube.
-    """
-
-    # 1. GRASP POSE -- palm to the UltraDexGrasp goal pose (position + orientation).
-    #    Unchanged formula and weight from the validated Phase 1/3 setting; this is the one
-    #    piece of the old stack that ever demonstrably worked (it fixed the approach-angle
-    #    problem) and it is what makes the learned grasp consistent enough for sim-to-real.
-    #    Hand joint configuration is NOT separately rewarded -- fingertip_contact below is
-    #    what closes the fingers, and keeping it that way holds the set to three terms.
-    # 2026-08-27, "[Sufian v5]": FULL POSE FROM ITERATION 0, blend="gated" -- this is now
-    # the standing config, not a curriculum stage. The staged position-only-then-pose
-    # approach (v2/v3) and the checkpoint-1100-resume approach (v4) are both abandoned in
-    # favour of the cleanest possible test of Sufian's actual recipe: train from scratch,
-    # deviate as little as possible from what he specified, fix only the one real bug found
-    # along the way.
-    #
-    # That bug is the additive blend this reward originally used, which let orientation pay
-    # off on its own -- the policy sat 12.6cm from the goal with the wrist aligned to within
-    # 11-17deg, banking 68% of the term from orientation alone. blend="gated" closes that:
-    #   reward = pos_rew * ((1-w) + w*orient_rew)
-    # If pos_rew -> 0 the WHOLE term -> 0, so orientation can never substitute for position.
-    # Perfect orientation at zero position now pays zero, not half credit.
-    #
-    # The blend is ADDITIVE: (1-w)*pos_rew + w*orient_rew. At w=0.5 that let the policy bank
-    # half the reward from ORIENTATION ALONE, which is achievable anywhere in space by
-    # rotating the wrist -- no need to ever fix position. Measured on this run's best
-    # checkpoint (200): palm->goal = 12.6cm while wrist_err = only 11-17 deg. Working the
-    # arithmetic: pos_rew 0.314, orient_rew 0.649, so orientation was supplying 68% of the
-    # term. The policy sat 12cm away with a perfectly-aligned wrist and touched the tray,
-    # exactly as the user observed on video.
-    #
-    # Position-only removes that loophole entirely. It is also what Phase 1 originally used
-    # (orient_weight=0.0) -- the one stage of this project that ever validated cleanly.
-    #
-    # WHEN RE-ADDING ORIENTATION for stage 2, do NOT go back to the additive blend or this
-    # recurs. Make it MULTIPLICATIVE (pos_rew * orient_rew) so neither half pays on its own.
-    #
-    # "[Option B]" 2026-08-29: pos_shape "tanh" -> "linear". The gated composition above
-    # fixed the independence bug (v5 confirmed: zero interpenetration at every checkpoint,
-    # a real improvement) but v5 still stalled with the palm 5-6cm from goal at every
-    # checkpoint from ~600 onward and never closed further. Root cause per the literature
-    # review: tanh's gradient shrinks with distance -- already down to a quarter of its
-    # peak by 20-30cm, which is exactly the range a policy starting from a resting arm
-    # posture has to cross. "linear" (see grasp_goal_palm_reward's docstring) ports OpenAI's
-    # Learning Dexterous In-Hand Manipulation (Andrychowicz et al. 2020, IJRR) /
-    # IsaacLab's own bundled in-hand-manipulation reference reward, which use a raw linear
-    # distance penalty for exactly this reason -- constant gradient out to pos_ramp_dist,
-    # no point at which the position term goes quiet.
-    #
-    # "[Option C]" 2026-08-29, per the user: v6 (Option B) converged in ~90 iterations to a
-    # palm 11-12cm from goal and then sat there, flat, for 700+ iterations -- the gated,
-    # linear-position term reached a stable local optimum without ever closing further.
-    # Diagnosis, from the user directly: the single palm-CENTROID position point is too
-    # weak/uninformative a target ("just one simple point, I don't think it's doing much").
-    #
-    # Two changes, both the user's design:
-    #   1. Position is now the mean LINEAR distance of the 5 tracked FINGERTIPS to their own
-    #      per-finger target point on the cube surface (multi_link_position_reward below),
-    #      not one palm-centroid point. Matching 5 points simultaneously is a much richer
-    #      target than 1, and implicitly constrains orientation too -- a correctly-placed
-    #      but wrongly-rotated hand still misses on the fingertip targets even if the palm
-    #      centroid is fine.
-    #   2. Back to SIMPLE ADDITION, not the gated/multiplicative composition -- the user's
-    #      call, judged not worth the complexity right now. Split into two SEPARATE RewTerms
-    #      (rather than one function blending both) so position and orientation are
-    #      independently visible on the reward curves -- this project has repeatedly been
-    #      burned by a single blended number hiding a real regression (this exact
-    #      grasp_pose term stayed high in "[Phase 2+3 v3]" while measured contact got
-    #      worse), so this makes that impossible to miss again.
-    #   Weight split 0.75 position / 0.25 orientation of the previous total 2.0 -> 1.5/0.5.
-    #
-    # Orientation term is UNCHANGED (still the palm quaternion vs goal quaternion, tanh
-    # shape) -- reused via grasp_goal_palm_reward with orient_weight=1.0, blend="additive",
-    # which makes the (1-orient_weight)*pos_rew term evaluate to exactly zero, leaving pure
-    # orientation. No new function needed for this half.
-    # WEIGHT 0.0 for "[Curriculum step]" 2026-08-29 -- user's call after v5/v6/v7 all showed
-    # the same signature (position converges by iter ~90-100 then sits flat for 900
-    # iterations, hand near but not enveloping the cube -- confirmed on video for v7). Per
-    # the user, go back to what demonstrably worked before for the first 100-200 iterations
-    # (Phase 1's position-only reward) and pair it with the old geometric grasp_reach term,
-    # for up to 500 iterations, to get a checkpoint that actually envelops the cube -- THEN
-    # resume from that checkpoint back into this current reward set. Code kept in place
-    # (weight=0.0 -> IsaacLab's RewardManager skips it entirely, doesn't just zero it) so
-    # reverting is a weight flip, not a rewrite. See palm_position_curriculum and
-    # grasp_reach_curriculum below for what replaces these during the curriculum step.
-    grasp_pose_position = RewTerm(
-        func=mdp.multi_link_position_reward,
-        weight=0.0,
-        params={"robot_cfg": SceneEntityCfg("robot", body_names=_RIGHT_HAND_BODIES[1:]),
-                "object_cfg": SceneEntityCfg("target_object"), "pos_ramp_dist": 0.5},
-    )
-    # "[Combined v1]" 2026-08-29: weight 0.0 -> 0.5 -- orientation reactivated alongside
-    # palm_position_curriculum above (0.75/0.25 split of a combined 2.0, per the user).
-    # orient_weight=1.0 + blend="additive" makes the (1-w)*pos_rew term evaluate to
-    # exactly zero, leaving pure orientation -- same reuse trick as before, no new function.
-    grasp_pose_orientation = RewTerm(
-        func=mdp.grasp_goal_palm_reward,
-        weight=0.5,
-        params={"robot_cfg": SceneEntityCfg("robot"), "pos_std": 0.15,
-                "orient_std": 0.6, "orient_weight": 1.0, "pos_mode": "full",
-                "blend": "additive"},
-    )
-
-    # "[Curriculum step]" 2026-08-29: Phase 1's ORIGINAL position-only palm reward (no
-    # orientation, single palm-centroid point, tanh) -- the one stage of this whole project
-    # that ever validated cleanly on its own. Exact params restored from
-    # g1_pick_env_cfg.py.pre_sufian.bak (weight=2.0, pos_std=0.15). orient_weight=0.0 means
-    # blend mode is moot (additive with w=0 reduces to pure pos_rew either way).
-    # "[Combined v1]" 2026-08-29: weight 2.0 -> 1.5 (0.75 of the combined position+
-    # orientation total 2.0), now that grasp_pose_orientation below is reactivated
-    # alongside it. Function/params otherwise unchanged from the curriculum step --
-    # still the classic single palm-centroid point, tanh, position-only.
-    palm_position_curriculum = RewTerm(
-        func=mdp.grasp_goal_palm_reward,
-        weight=1.5,
-        params={"robot_cfg": SceneEntityCfg("robot"), "pos_std": 0.15,
-                "orient_std": 0.6, "orient_weight": 0.0, "pos_mode": "full",
-                "blend": "additive"},
-    )
-    # "[Curriculum step]" 2026-08-29: the OLD geometric fingertip-to-cube-SURFACE distance
-    # term (tanh, std=0.05cm... actually std=0.05m/5cm), restored verbatim from the same
-    # backup. Distinct from `fingertip_contact` above (PhysX force) -- this one is pure
-    # geometry, per the user's explicit request to go back to it for this curriculum step.
-    # "[Combined v1]" 2026-08-29: shape "tanh" -> "linear", per the user -- same reasoning
-    # as every other linear conversion this project: constant gradient of 1/ramp_dist all
-    # the way to the target, so the incentive to close the last centimetre (and reach
-    # genuine contact) never goes quiet the way it did under tanh.
-    grasp_reach_curriculum = RewTerm(
-        func=mdp.grasp_reach_reward,
+    # Dense pick/lift shaping: posture + reach + grasp + lift + success_bonus (with target_drop override)
+    # use_posture=False removes the hardcoded "hover 8 cm above the cube" term -- palm
+    # placement is owned by grasp_goal_palm instead, active (position-only) from Phase 1
+    # itself as of 2026-08-21 -- see grasp_goal_palm's own comment below.
+    task_reward = RewTerm(
+        func=compute_task_reward,
         weight=1.0,
-        params={"robot_cfg": SceneEntityCfg("robot", body_names=_RIGHT_HAND_BODIES[1:]),
-                "std": 0.05, "shape": "linear", "ramp_dist": 0.5},
+        params={
+            "robot_cfg": SceneEntityCfg("robot", body_names=_RIGHT_HAND_BODIES),
+            "object_cfg": SceneEntityCfg("target_object"),
+            "use_posture": False,
+            # FALSE for "[Phase 4 v6] grasp-free lift" (2026-08-25). MUST be False whenever
+            # the UltraDex pose terms are off, or this phase silently defeats itself:
+            # success_scale = success_floor + (1-floor)*pose_match measures pose_match
+            # against the very goal pose we are deliberately no longer pursuing, so the
+            # 1000-point bonus would stay pinned near its 0.2 floor and the policy would be
+            # penalised for not matching a pose nothing else is asking it to match.
+            # Restore to True in the follow-up phase that re-introduces pose mimicry.
+            "pose_gated_success": True,
+            "success_floor": 0.2,
+            "pose_pos_std": 0.10,
+            "pose_ang_std": 0.8,
+            "reach_weight": 1.0,   # Phase 1 -- on
+            # 0.0 for "[Scratch v1]" -- exact Phase 1 value (from that run's own recorded
+            # params/env.yaml, not from memory). Phase 2's pairwise-coverage grasp_rew comes
+            # back in the Phase 2+3 leg of this retrain.
+            "grasp_weight": 3.0,   # Phase 2 -- on 2026-08-21 (pairwise-coverage grasp_rew,
+                                    # merged with Phase 3 -- see note below)
+            # OFF for "[Phase 2+3 v4]" (2026-08-25), swapped ON automatically for Phase 4
+            # by run_phase4_when_ready.sh -- the marker comment below is that script's
+            # sed anchor, do not remove or reword it.
+            "lift_weight": 1.0,  # PHASE4_SWAP_LIFT_WEIGHT
+            # HISTORY -- was ON for "[Control] native grasp mechanism" on
+                                    # 2026-08-24. q_std=1.0 (phase23v3) made real fingertip
+                                    # contact WORSE than q_std=0.3 despite the term's own
+                                    # reward climbing (measured via contact_check.py: thumb
+                                    # mean 2.16cm@250 -> 4.07cm@749, monotonically worse;
+                                    # hand_state_probe.py confirmed gate/q_err both regressed
+                                    # vs the earlier config too) -- reward hacking, not a fix.
+                                    # Rather than re-tune grasp_goal_hand a third time,
+                                    # running the control experiment CONTEXT.md section 12
+                                    # proposed and never executed: this repo's own
+                                    # task_reward grasp/lift/success mechanism (grasp_rew,
+                                    # is_grasped, lift_cont_rew, success_bonus below)
+                                    # previously hit 72-94% target_lifted in an unrelated
+                                    # 2026-07 experiment on this same task WITHOUT any help
+                                    # from grasp_goal_hand/grasp_goal_palm (both sat flat at
+                                    # ~0.03/0.001 the entire time) -- the terminal 1000-point
+                                    # success_bonus dwarfs additive pose-imitation shaping, so
+                                    # there's no reward-math reason lift needs pose-imitation
+                                    # to work first. grasp_goal_hand and grasp_reach disabled
+                                    # below to isolate this; grasp_goal_palm kept ON since
+                                    # it's already validated for approach quality in Phase 1
+                                    # and wasn't implicated in the diagnosis. Caveat: that
+                                    # historical success predates this repo's tighter
+                                    # pairwise-coverage is_grasped (2026-08-20) and had
+                                    # documented real interpenetration (fingers clipping
+                                    # through the cube) -- watch hand_cube_penetration in
+                                    # play_with_goal_markers.py, not just target_lifted, before
+                                    # trusting any success rate this run produces. See
+                                    # REWARD_CURRICULUM_LOG.md "[Control]".
+            "success_weight": 1.0,  # PHASE4_SWAP_SUCCESS_WEIGHT
+            # lift_scale: raised hard for Phase 4 per the user (2026-08-25). At the old 2.0,
+            # a 1cm lift held for a whole episode was worth 0.01*2.0*8s = +0.16 of return
+            # against a total of ~27 (+0.6%), while joint_speed alone already cost -1.80 --
+            # i.e. lifting was a strictly bad trade and the policy was right to refuse. 60.0
+            # makes that same 1cm lift worth ~5.0 of return, the target the user asked for.
+            "lift_scale": 60.0,  # PHASE4_SWAP_LIFT_SCALE
+        },
     )
 
-    # 2. LIFT -- linear in cube height above rest, clamped at 20cm.
-    #    Linear, not tanh: a tanh here saturates and its gradient dies, which is exactly how
-    #    two earlier attempts failed (q_std sized to the wanted error instead of the real
-    #    one). A linear ramp has constant gradient the whole way up.
-    lift = RewTerm(
-        func=mdp.cube_lift_height_reward,
-        weight=20.0,
-        params={"object_cfg": SceneEntityCfg("target_object"),
-                "init_z": _OBJ_INIT_Z, "max_h": 0.20},
+    # Standalone whole-hand coverage bonus (2026-08-20 design, REWARD_CURRICULUM_LOG.md
+    # "Proposed fix: pairwise coverage reward"). On 2026-08-21 alongside grasp_weight above.
+    grasp_envelope = RewTerm(
+        func=grasp_envelope_reward,
+        weight=2.5,  # Phase 2+3 value (restored 2026-08-25 for "[Scratch v3]")
+        params={
+            "robot_cfg": SceneEntityCfg("robot", body_names=_RIGHT_HAND_BODIES),
+            "object_cfg": SceneEntityCfg("target_object"),
+        },
     )
 
-    # 3. CONTACT -- real PhysX fingertip<->cube force. Saturates per finger at 5N and then
-    #    averages over the five, so it pays for spreading contact rather than for one finger
-    #    mashing hard (raw summed force would reward shoving, the exact failure measured:
-    #    slamming the hand shut moved the cube 7.3cm sideways and 0.09cm up).
+    # Phase 4 v2 BOOTSTRAP-ONLY (2026-08-21, REWARD_CURRICULUM_LOG.md "[Phase 4 v2]") --
+    # rewards the cube's instantaneous upward velocity, not its height, specifically to make
+    # the FIRST lift attempt easier to discover via exploration noise. TEMPORARY: turn this
+    # off (weight -> 0.0) the moment lift_progress below shows the cube reliably
+    # reaching ~1-1.5cm -- see lift_attempt_velocity_reward's docstring for why this needs to
+    # be capped in time, not just in magnitude.
     #
-    # WEIGHT 0.0 for "[Curriculum step]" 2026-08-29 -- swapped out for grasp_reach_curriculum
-    # above per the user. Restore to 2.0 (and zero the _curriculum terms) to come back to
-    # the current reward set once the curriculum step picks a checkpoint.
-    # "[Combined v1]" 2026-08-29: weight 0.0 -> 2.0, reactivated alongside the distance
-    # field above rather than instead of it -- per the user, distance provides the dense
-    # gradient to get close, contact provides the true (force-based, unfakeable) objective
-    # once there. Safe to add rather than gate: unlike the earlier position/orientation
-    # bug, high grasp_reach_curriculum genuinely requires being near the cube surface
-    # already, so it is not an independent shortcut around actually making contact.
-    fingertip_contact = RewTerm(
-        func=mdp.fingertip_contact_force_reward,
-        weight=2.0,
-        params={"force_thresh": 0.1, "sat_force": 5.0},
+    # ROUND 3 ESCALATION (2026-08-21): round 2 (weight=0.3, vel_scale=0.15) produced no
+    # measurable progress over 400+ iterations -- peak observed cube velocity was only
+    # ~1.6mm/s, meaning tanh(0.0016/0.15)~=0.011, i.e. the term was paying out barely 1% of
+    # its own max even at its best moment. Raising weight alone would have kept multiplying
+    # "almost nothing." vel_scale RECALIBRATED down to match the actual magnitude being
+    # explored (mm/s) instead of an eventual real lift speed (15cm/s) -- the same tiny
+    # motion that scored ~0.011 raw before now scores tanh(0.0016/0.02)~=0.08, roughly 7x
+    # more sensitive at the scale that's actually occurring, combined with weight 0.3->1.0.
+    # DISABLED for Phase 4 v4 (2026-08-22, REWARD_CURRICULUM_LOG.md "[Phase 4 v4]") --
+    # Round 6 (weight=10.0) produced large uncontrolled thrashing (the policy repeatedly
+    # snapping joints to trigger velocity spikes) rather than a controlled lift, confirmed
+    # via video. Turned off entirely for this attempt to isolate the new `riser` scene
+    # asset's effect on its own, per this project's one-variable-at-a-time convention --
+    # the whole premise of the riser is that a genuinely reachable elevated cube should
+    # make lifting discoverable through the existing dense lift_cont_rew (now back to its
+    # un-escalated lift_scale=2.0) without needing an extra velocity-chasing incentive.
+    lift_attempt_velocity = RewTerm(
+        func=lift_attempt_velocity_reward,
+        weight=0.0,
+        params={"object_cfg": SceneEntityCfg("target_object"), "vel_scale": 0.02},
     )
 
-    # THE ONLY PENALTY -- action rate. Every other penalty (joint_speed, target_object_accel,
-    # distractor_accel, fingertip_impact) is deleted; the behaviours they discouraged are now
-    # handled by TERMINATIONS instead, which is a hard constraint rather than a gradient the
-    # policy can trade against reward.
+    # Phase 4 v2 LOGGING-ONLY (2026-08-21) -- mean cube height above resting, small non-zero
+    # weight purely to force it onto the TensorBoard Episode_Reward/* curves (a weight of
+    # exactly 0.0 gets skipped by IsaacLab's RewardManager and never computed/logged at all).
+    # Watch this curve for the ~1-1.5cm crossing that triggers the lift_attempt_velocity/
+    # lift_scale cutover above -- see lift_progress_height's docstring.
+    lift_progress = RewTerm(
+        func=lift_progress_height,
+        weight=1.0,
+        params={"object_cfg": SceneEntityCfg("target_object"), "milestone": 0.03},
+    )
+
+    # Goal-grasp shaping from the BODex/UltraDexGrasp Inspire Hand library -- pulls the palm
+    # toward the sampled goal grasp pose and, once close, the six proximal joints toward the
+    # goal hand configuration.
+    #
+    # HISTORY (see REWARD_CURRICULUM_LOG.md for full data): the ROOT CAUSE REASSESSMENT
+    # (2026-08-21) traced every earlier Phase 2/3 struggle to Phase 1 itself -- reach_rew had
+    # no preference for approach direction, and the arm consistently converged on an
+    # awkward, kinematically-easy top-down reach that every downstream attempt inherited.
+    # Fix: activated grasp_goal_palm in PHASE 1 itself, position-only (orient_weight=0.0),
+    # reusing the existing live-goal infrastructure instead of a fixed anchor point (a fixed
+    # "N cm above the cube" reward was considered and rejected -- see the log for why). That
+    # run (`phase1_reach_palmpos_cuberot45`, after a further fix rotating the cube's spawn
+    # yaw 45 degrees -- the fixed unrotated cube was ALSO contributing to the awkward-angle
+    # problem) validated cleanly: grasp_goal_palm converged smoothly with no decline, and by
+    # the user's own video review the fingers were already settling into roughly
+    # grasp-appropriate shapes as an emergent side effect of good positioning.
+    #
+    # MERGED PHASE 2+3 (2026-08-21): given that emergent grasp-shaped starting point, the
+    # user's judgment was that the original risk of merging (a coarse Phase 2 reward giving
+    # the policy an easy "good enough" alternative to the specific Phase 3 pose -- see
+    # MDP_REPORT.md Sec 5.2.3 and this file's own "What Didn't Work" history) is less likely
+    # to bite this time, since Phase 1 no longer hands Phase 2/3 a blank slate. Resumed from
+    # checkpoint 200 of phase1_reach_palmpos_cuberot45 (not the fully-converged 499 --
+    # grasp_goal_palm had already plateaued by iter 200 while Policy/mean_noise_std kept
+    # declining well past that point with no further gain in the metric that mattered, same
+    # over-convergence logic as every other phase handoff in this file). grasp_goal_palm's
+    # orient_weight also returns to its default (0.5, full pose) now that Phase 3 is live.
+    # ALL FOUR UltraDex pose-mimicry terms (grasp_goal_palm, grasp_goal_hand, grasp_reach,
+    # finger_contact) are OFF for "[Phase 4 v6] grasp-free lift" (2026-08-25, the user's
+    # plan). Rationale: learn the PICK first with the policy's own grasp, then re-introduce
+    # pose mimicry as a second stage to converge that grasp onto the UltraDex pose -- which
+    # is the sequence that demonstrably worked for the user before (policy found its own
+    # grasp, a pose-error term then made it consistent). Direct precedent in this repo:
+    # CONTEXT.md section 6 records 94% target_lifted while grasp_goal_palm/grasp_goal_hand
+    # sat flat at 0.029/0.001, i.e. the successful run was ALREADY effectively pose-free.
+    # The 2026-08-24 "[Control]" run is not a counterexample -- it left grasp_goal_palm ON
+    # at weight 2.0, so the policy was still chasing a prescribed pose.
+    # Restore these (and pose_gated_success=True) for the follow-up mimicry phase.
+    # "[Scratch v1]" restores the exact Phase 1 setting: weight 2.0, orient_weight 0.0
+    # (POSITION-ONLY). Phase 1 deliberately did not constrain palm ORIENTATION -- that was
+    # merged in later for Phase 3. Verified against the phase1 run's own recorded
+    # params/env.yaml rather than reconstructed from memory.
+    grasp_goal_palm = RewTerm(
+        func=mdp.grasp_goal_palm_reward,
+        weight=2.0,
+        params={"robot_cfg": SceneEntityCfg("robot"), "pos_std": 0.15,
+                "orient_std": 0.6, "orient_weight": 0.5,  # full pose -- Phase 3 value
+                "pos_mode": "full"},
+    )
+    # Phase 2+3 REDO (2026-08-23/24, REWARD_CURRICULUM_LOG.md "[Phase 2+3 v2]"): weight
+    # 1.0 -> 4.0, q_std 0.5 -> 0.3. Root cause of Phase 4's total failure (five rounds,
+    # zero success) traced all the way back here: contact_check.py on checkpoint 450 (the
+    # checkpoint EVERY Phase 4 attempt started from) showed the fingers NEVER touched the
+    # cube surface even once, in any of 64 envs, at their single closest approach across a
+    # whole rollout (closest: thumb 0.18cm, others 1.3-3.1cm -- all still positive, i.e.
+    # still short of contact). Phase 4's lift reward is a function of CUBE height; with a
+    # 1-3cm air gap between every finger and the cube, moving the arm cannot change cube
+    # height at all -- not a small gradient, an exactly-zero one, which explains why every
+    # escalation (6x, 12x, RND, 10x) failed identically: multiplying zero doesn't help.
+    # grasp_goal_hand was the clearest smoking gun for WHY contact never happens: it sat at
+    # ~0.05 of a possible 1.0 (working backward through the gate, roughly 0.86rad of the
+    # target hand configuration's ~6 joints, out of a q_std=0.5 scale) -- underweighted
+    # (1.0) against action_smoothness (-3.0) and joint_speed (-1.0), so closing the fingers
+    # the rest of the way never paid enough to be worth the movement cost. Raising the
+    # weight to make finger closure competitive, and tightening q_std to sharpen the
+    # gradient specifically in the currently-plateaued high-error region (at q_std=0.5, the
+    # measured 0.86rad error already sits in the near-saturated tail of the tanh; at 0.3 it
+    # sits on the steep part, giving a much stronger signal to keep closing). Single,
+    # targeted, attributable change -- matches the same pattern that fixed Phase 1
+    # (activate/weight the one term that directly encodes the missing behavior, don't
+    # redesign multiple formulas at once).
+    # q_std=0.3 (2026-08-23, "[Phase 2+3 v2]") was a mistake -- it was chosen to sharpen
+    # the gradient, but the actual q_err at handoff was ~0.88rad, i.e. ALREADY several std
+    # past 0.3, so tightening pushed it deeper into the tanh's saturated tail instead of
+    # onto the steep part. Measured directly on the resulting checkpoint
+    # (hand_state_probe.py): d(rew)/d(q_err) = 0.109, actually WEAKER than the pre-fix
+    # 0.5/1.0 config's 0.171, despite the 4x weight increase -- explains why
+    # grasp_goal_hand stayed pinned at ~0.03/1.0 for the entire 500-iteration run. Rule:
+    # size q_std to the error you HAVE, not the error you want. q_std=1.0 puts the current
+    # 0.90rad error at u=0.90 (near the steepest part of tanh, gradient 1.60 -- 14.7x
+    # stronger) and self-sharpens as q_err falls, so it shouldn't need retuning again. See
+    # REWARD_CURRICULUM_LOG.md "[Phase 2+3 v3]".
+    # "[Phase 2+3 v4]" (2026-08-25): REVERTED to the original pre-"[Phase 2+3 v2]" setting
+    # (weight 1.0, q_std 0.5). Both retunes of this term failed, in opposite directions:
+    # q_std=0.3 saturated its gradient to ~0.109 (weaker than this baseline's 0.171 despite
+    # 4x the weight), and q_std=1.0 made it dominant enough to get REWARD-HACKED -- its own
+    # episodic reward rose 45x (0.03 -> 1.34) while measured fingertip-to-cube distance got
+    # ~2x WORSE across every checkpoint (contact_check.py). Root cause of the hack: this
+    # term scores JOINT ANGLES behind a loose 20cm palm gate, so "correct hand shape, wrong
+    # place" scores nearly full marks. Keeping it at its known-neutral baseline to hold
+    # overall grasp SHAPE (which is what it's good for, and what the user wants preserved
+    # for sim-to-real consistency) and handing the actual contact job to finger_contact
+    # below, which is cube-relative and cannot be satisfied in the wrong place.
+    # "[Squeeze v1]" (2026-08-26): target the SQUEEZE stage, and raise the weight to keep
+    # the gradient constant while doing so. See grasp_goal_hand_config_reward's docstring
+    # for the measurement that forced this (lift_capability_probe: palm +2.50cm, cube
+    # -0.01cm -- zero grip despite the best contact of the project).
+    #
+    # The weight change is NOT arbitrary: moving the target to squeeze increases q_err by
+    # ~0.35 rad, from ~0.35 to ~0.70. At q_std=0.5 the tanh gradient
+    # (1/q_std)*sech^2(q_err/q_std) therefore falls 1.264 -> 0.434, so the pull would get
+    # ~3x WEAKER exactly when it needs to be stronger. weight 1.0 -> 3.0 restores the
+    # effective gradient to ~1.30, matching what the term exerted before. q_std is
+    # deliberately left at 0.5 rather than re-widened to ~0.9 (which would maximise
+    # gradient) because q_std=1.0 at high weight is what got REWARD-HACKED in
+    # "[Phase 2+3 v3]" -- see that entry.
+    grasp_goal_hand = RewTerm(
+        func=mdp.grasp_goal_hand_config_reward,
+        weight=3.0,
+        params={"robot_cfg": SceneEntityCfg("robot"), "q_std": 0.5, "gate_dist": 0.20,
+                "use_squeeze": True},
+    )
+
+    # Per-fingertip contact-point reward (MDP_REPORT.md §5.2.4): pulls each of the 5 tracked
+    # fingertips toward its OWN target point on the cube surface for grasp #12. On 2026-08-21
+    # alongside grasp_goal_hand (see grasp_goal_palm's comment above). Restored to weight 1.0
+    # for "[Phase 2+3 v4]" after being zeroed for the "[Control]" run -- keeps all five
+    # fingers aligned to the grasp while finger_contact below drives the three that weren't
+    # closing.
+    # "[Phase 2+3 v5]" (2026-08-25): weight 1.0 -> 3.0. In v4 the THUMB regressed badly
+    # (contact_check mean 2.58cm@300 -> 4.44cm@749; thumb_yaw |dq| 0.18 -> 1.02) because
+    # reverting grasp_goal_hand to weight 1.0 removed the only strong term holding it near
+    # goal, and this term at weight 1.0 could not take over. Raising THIS term rather than
+    # re-arming grasp_goal_hand is deliberate: grasp_reach is scored against points ON THE
+    # CUBE, so unlike the joint-angle term it cannot be satisfied by the right hand shape in
+    # the wrong place -- the exploit that wrecked "[Phase 2+3 v3]". Its std=0.05 also already
+    # matches the measured ~4.5cm error, so its gradient is near-optimal as-is.
+    grasp_reach = RewTerm(
+        func=mdp.grasp_reach_reward,
+        weight=1.0,  # Phase 2+3 value (restored 2026-08-25 for "[Scratch v3]")
+        params={"robot_cfg": SceneEntityCfg("robot", body_names=_RIGHT_HAND_BODIES[1:]), "std": 0.05},
+    )
+
+    # NEW for "[Phase 2+3 v4]" (2026-08-25) -- the actual fix this phase is testing.
+    # Proximity-gated pull of middle/ring/pinky toward their own cube-surface contact
+    # points. See finger_contact_reward's docstring for the full rationale; in short:
+    # mimic_track_probe.py measured those three proximal joints pinned at ~0% of travel
+    # (the policy actively commanding them BELOW their lower limit) while the thumb used
+    # 80-88% of its range, and measure_coupling.py confirmed they track position commands
+    # fine to 1.0 rad -- so they CAN close, the reward just never made it worth doing.
+    #
+    # Structurally different from grasp_goal_hand on purpose: scored against points ON THE
+    # CUBE rather than against joint angles, so the "right shape in the wrong place" exploit
+    # that hacked "[Phase 2+3 v3]" pays nothing here.
+    #
+    # gate_dist=0.12: tighter than grasp_goal_hand's 0.20 but NOT as tight as the 0.08 first
+    # tried -- the trained policy settles ~8cm from the goal, where a 0.08 gate opens to only
+    # ~0.24 and would throttle this term to near-nothing (the sanity run showed it reading
+    # 0.0000). The gate's job here is only to stop the fingers curling early during the
+    # approach, which the user asked for; it does NOT need to be the anti-hack mechanism the
+    # way grasp_goal_hand's gate did, because scoring against points ON THE CUBE already
+    # makes "curl in the wrong place" worthless. 0.12 opens to ~0.55 at the policy's actual
+    # operating distance while still paying far more for being properly seated.
+    # std 0.02 -> 0.055 for "[Phase 2+3 v5]" (2026-08-25). 0.02 was THE bug in v4: it was
+    # sized to the error we WANT (1-2cm) rather than the error we HAVE (~4.5cm measured) --
+    # the exact mistake this file already documents for grasp_goal_hand's q_std=0.3, made
+    # again. At d=0.045 with std=0.02 the term sits at u=2.25, deep in tanh's flat tail:
+    # value 0.022 of a possible 1.0 and gradient (1/std)*sech^2(u) = 2.16/m. Measured
+    # result: finger_contact rose 340x over the run yet ended at 0.0025 raw, i.e. 0.25% of
+    # its maximum -- it never meaningfully engaged, and middle/ring/pinky ended flat
+    # (4.61/4.83/5.26cm -> 4.40/5.21/4.87cm). std=0.055 puts d=0.045 at u=0.82, essentially
+    # the steepest point of tanh (peak gradient is at u~0.77), giving ~9.96/m -- 4.6x
+    # stronger -- and it self-sharpens as the distance closes, so it should not need
+    # retuning. Rule, now violated twice: size a tanh std to the CURRENT error.
+    # weight=3.0 makes it competitive with grasp_weight (3.0) and grasp_envelope (2.5)
+    # without dominating them; per the user, a valid FSWO grasp does NOT require all five
+    # fingers to physically touch (contact points are surface PROJECTIONS chosen for force
+    # closure), so this is a dense pull, not a hard all-fingers-must-touch requirement.
+    finger_contact = RewTerm(
+        func=mdp.finger_contact_reward,
+        weight=0.0,  # OFF for "[Phase 4 v6]" -- see grasp_goal_palm's comment above
+        params={
+            "robot_cfg": SceneEntityCfg("robot"),
+            "object_cfg": SceneEntityCfg("target_object"),
+            "fingers": ("middle", "ring", "pinky"),
+            "std": 0.055,
+            "gate_dist": 0.12,
+        },
+    )
+
+    # Aggregated action penalty (action_rate + action_l2 only now -- joint_vel_scale moved to
+    # its own separately-tunable/loggable RewTerm below). Always on, from Phase 1.
     action_smoothness = RewTerm(
         func=action_smoothness_penalty,
         weight=-3.0,
         params={
             "robot_cfg": SceneEntityCfg("robot"),
             "action_rate_scale": 0.005,
-            "joint_vel_scale": 0.0,
+            "joint_vel_scale": 0.0,  # moved out -- see joint_speed_penalty
             "action_l2_scale": 0.0,
         },
     )
 
+    # NEW (2026-08-13): direct "never move fast" prior, split out of action_smoothness so it's
+    # independently tunable/logged. Always on from Phase 1 -- see joint_speed_penalty's
+    # docstring for why it's front-loaded rather than added alongside the later impact
+    # penalties.
+    joint_speed = RewTerm(
+        func=joint_speed_penalty,
+        # Phase 4 swaps this to -0.3 (run_phase4_when_ready.sh; marker is its sed anchor).
+        # This penalty was tuned for Phase 1, where holding STILL near the grasp pose was
+        # the objective -- under Phase 4 it directly opposes the new objective. Measured:
+        # it costs -1.80 of return for the motion the policy already makes, ~11x the +0.16
+        # a 1cm lift used to pay, so lifting was strictly negative-value.
+        weight=-0.3,  # PHASE4_SWAP_JOINT_SPEED
+        params={"robot_cfg": SceneEntityCfg("robot", joint_names=[
+            "right_shoulder_pitch_joint", "right_shoulder_roll_joint", "right_shoulder_yaw_joint",
+            "right_elbow_joint", "right_wrist_roll_joint", "right_wrist_pitch_joint", "right_wrist_yaw_joint",
+            "R_thumb_proximal_yaw_joint", "R_thumb_proximal_pitch_joint", "R_index_proximal_joint",
+            "R_middle_proximal_joint", "R_ring_proximal_joint", "R_pinky_proximal_joint",
+        ])},
+    )
+
+    # Fingertip impact penalty (|Δv| on 6 hand bodies) — discourages jab/slam contact.
+    # Zeroed until Phase 5 (introduced alongside clutter, where slamming becomes the likelier
+    # failure mode) -- joint_speed_penalty + action_smoothness already cover Phases 1-4.
+    fingertip_impact = RewTerm(
+        func=fingertip_impact_penalty,
+        weight=0.0,  # target: -2.0 -- Phase 5
+        params={
+            "robot_cfg": SceneEntityCfg("robot", body_names=_RIGHT_HAND_BODIES),
+            "accel_threshold": 3.0,
+        },
+    )
+
+    # Acceleration (|Δv| per step) across 10 distractors — gentle, impact-based. Active from
+    # Phase 1: it's a no-op while every distractor sits on the table margin (Phase 1-4's
+    # Isaac-G1-Pick-Empty-v0), since it can only fire when something is actually disturbed --
+    # but front-loading it means the policy never has a window where hitting things is free,
+    # even after real clutter is introduced in Phase 5.
+    distractor_accel = RewTerm(
+        func=distractor_acceleration_penalty,
+        weight=-3.0,
+        params={
+            "distractor_names": _DISTRACTOR_NAMES,
+            "accel_threshold": 2.0,
+        },
+    )
+
+    # Checkpoint-5500+ regression fix: direct penalty on the TARGET cube's own sudden velocity
+    # change, independent of is_grasped (a violent "throw" can satisfy is_grasped's soft
+    # proximity gate for a few post-impact frames and pay out lift/success without a real
+    # grasp -- see target_object_acceleration_penalty's docstring for the full mechanism).
+    # Zeroed until Phase 4: the exploit this closes literally cannot occur before lift_weight/
+    # success_weight are non-zero, so there's nothing for it to guard against any earlier.
+    target_object_accel = RewTerm(
+        func=target_object_acceleration_penalty,
+        # Moved to Phase 1 (2026-08-19), earlier than originally planned (Phase 4). The
+        # original reasoning was "this exploit needs lift/success to be reachable" -- but
+        # the checkpoint-150 reward-breakdown plot showed a related failure mode doesn't:
+        # reach_rew is direction-agnostic (fingertip-to-cube distance shrinking counts the
+        # same whether the HAND moves to the cube or the cube gets knocked toward the
+        # hand), so a policy can exploit it via cube-disturbance even with lift/success
+        # weight still at 0. Active from the start closes that path off from the outset.
+        # Phase 4 swaps this to -2.0 (run_phase4_when_ready.sh; marker is its sed anchor).
+        # Lifting the cube necessarily accelerates it, so at -5.0 (the largest-magnitude
+        # penalty in this config) this term taxes the exact behavior Phase 4 is trying to
+        # elicit. Reduced rather than removed -- it still closes the shove/knock exploit.
+        weight=-2.0,  # PHASE4_SWAP_TARGET_ACCEL
+        params={
+            "object_cfg": SceneEntityCfg("target_object"),
+            "accel_threshold": 2.0,
+        },
+    )
+
+    # Added 2026-08-19: sparse bonus paired with TerminationsCfg.sustained_reach -- pays out
+    # on the exact step that termination fires (fingertip centroid held within 10cm of the
+    # cube for 30 consecutive steps, ~1 second). weight=10.0 is a starting value per user
+    # request ("10 or 20") -- tune after seeing how often it actually fires in practice.
+    sustained_reach_bonus = RewTerm(
+        func=sustained_reach_bonus_reward,
+        weight=10.0,
+        params={},
+    )
+
+    # Heavy per-step penalty per distractor currently below tray surface (episode continues).
+    # Zeroed for Phases 1-4 (distractors parked on the table margin, would fire permanently
+    # and meaninglessly for all 10 -- same reason the earlier no-interference phase zeroed it).
+    # Turns on at Phase 5 once distractors are back on the tray.
+    distractor_off_tray = RewTerm(
+        func=distractor_off_tray_penalty,
+        weight=0.0,  # target: -10.0 -- Phase 5
+        params={
+            "off_tray_height": _OFF_TRAY_Z,
+            "distractor_names": _DISTRACTOR_NAMES,
+        },
+    )
+
+    # Sparse: fires once if ANY distractor falls below _DROP_Z (episode terminates). Zeroed for
+    # Phases 1-4 -- inert anyway at table-resting height, zeroed for clarity/symmetry with
+    # distractor_off_tray above. Turns on at Phase 5.
+    distractor_drop = RewTerm(
+        func=distractor_drop_penalty,
+        weight=0.0,  # target: -100.0 -- Phase 5
+        params={
+            "minimum_height": _DROP_Z,
+            "distractor_names": _DISTRACTOR_NAMES,
+        },
+    )
 
 @configclass
 class EventCfg:
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
-
-    # ---------------- Domain randomization, "[Sufian Plan]" 2026-08-27 ----------------
-    # Friction 0.2-0.8 on BOTH the hand and the cube. Note this is a real widening AND a
-    # lowering: the cube was previously pinned at 1.0 and the hand was never set at all
-    # (silently inheriting the USD/PhysX default). Randomizing forces the policy to find a
-    # grasp that works across friction rather than one tuned to a single lucky value.
-    # mode="startup" because PhysX caps total unique materials and IsaacLab samples the
-    # buckets once at init -- see randomize_rigid_body_material's own note.
-    randomize_hand_friction = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.2, 0.8),
-            "dynamic_friction_range": (0.2, 0.8),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 128,
-            "make_consistent": True,
-        },
-    )
-    randomize_cube_friction = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("target_object"),
-            "static_friction_range": (0.2, 0.8),
-            "dynamic_friction_range": (0.2, 0.8),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 128,
-            "make_consistent": True,
-        },
-    )
-    # Cube mass 200-500 g ("abs" = set the value outright, not add/scale, so the range is
-    # exactly what was asked for regardless of the 0.2kg spawn mass).
-    randomize_cube_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("target_object"),
-            "mass_distribution_params": (0.2, 0.5),
-            "operation": "abs",
-            "distribution": "uniform",
-            "recompute_inertia": True,
-        },
-    )
 
     # Domain Randomization: Adds slight variance to starting arm position to prevent overfitting
     reset_right_arm = EventTerm(
@@ -1466,31 +1679,6 @@ class TerminationsCfg:
     # average per-fingertip distance to the cube SURFACE, threshold=0.01m (1cm, chosen
     # over 0.5cm to line up with contact_offset rather than push inside it). hold_steps
     # stays 10, carried over from Phase 1.
-    # ---- "[Sufian Plan]" 2026-08-27: these two REPLACE deleted reward penalties ----
-    # A penalty is a gradient the policy can trade against reward, and it did exactly that.
-    # A termination is a hard constraint it cannot buy its way past.
-    excessive_joint_speed = DoneTerm(
-        func=mdp.excessive_joint_speed_termination,
-        params={
-            "robot_cfg": SceneEntityCfg("robot", joint_names=[
-                "right_shoulder_pitch_joint", "right_shoulder_roll_joint", "right_shoulder_yaw_joint",
-                "right_elbow_joint", "right_wrist_roll_joint", "right_wrist_pitch_joint",
-                "right_wrist_yaw_joint",
-                "R_thumb_proximal_yaw_joint", "R_thumb_proximal_pitch_joint", "R_index_proximal_joint",
-                "R_middle_proximal_joint", "R_ring_proximal_joint", "R_pinky_proximal_joint",
-            ]),
-            # 3.0 fired on 13-24% of episodes at random init and was climbing -- that is
-            # not a safety backstop, it is a large hidden penalty that would gut exploration.
-            # 10.0 (20x the actuator's own velocity_limit_sim of 0.5) catches only genuine
-            # solver blow-ups, which is what a termination should be for.
-            "max_speed": 10.0,
-        },
-    )
-    cube_disturbed = DoneTerm(
-        func=mdp.cube_disturbed_termination,
-        params={"object_cfg": SceneEntityCfg("target_object"), "max_lateral": 0.10},
-    )
-
     sustained_reach = DoneTerm(
         func=sustained_reach_termination,
         params={

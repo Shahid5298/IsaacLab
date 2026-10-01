@@ -24,15 +24,22 @@ The robot's lower body (legs, waist) and left arm are frozen. Only the **right a
 
 **Tray surface height**: 0.820 m. **Target cube center** init at 0.845 m.
 
-**Distractor anchor positions** (3 rings around target at [0.35, 0.0]):
+**Distractor anchor positions** — this is the fixed layout `Isaac-G1-Pick-v0` (the default/"stage 3" task) actually spawns; distances are to the target's nominal center [0.35, 0.0], recomputed and verified directly from `SceneCfg`'s per-distractor `init_state.pos` (2026-08-13; the previous version of this table had 6, 7, and 8 in the wrong ring):
 
-| Ring | Distractors | Purpose |
-|------|-------------|---------|
-| Inner (≤8 cm) | 1, 2, 3 | Block direct approach path |
-| Mid (12 cm) | 4, 5, 6, 7 | Mid-workspace clutter |
-| Outer (18 cm) | 8, 9, 10 | Edge clutter |
+| Ring | Distractors | Position (x, y) | Distance from cube |
+|------|-------------|------------------|---------------------|
+| Inner (~7-8.5 cm) | 3, 8 | (0.42, 0.0), (0.28, 0.0) | 7.00 cm |
+| Inner (~7-8.5 cm) | 1, 2 | (0.38, ±0.08) | 8.54 cm |
+| Mid (~12 cm) | 4, 5 | (0.32, ±0.12) | 12.37 cm |
+| Outer (~17-18 cm) | 9 | (0.52, 0.0) | 17.00 cm |
+| Outer (~17-18 cm) | 6, 7 | (0.48, ±0.12) | 17.69 cm |
+| Outer (~17-18 cm) | 10 | (0.35, 0.18) | 18.00 cm |
 
-Each distractor resets with ±3 cm uniform jitter per episode.
+So the true split is 4 inner / 2 mid / 4 outer, not the 3/4/3 the ring boundaries previously implied.
+
+Each distractor resets with ±3 cm uniform jitter per episode (`reset_distractor_1`…`reset_distractor_10`, §8).
+
+**This is one of three registered distractor layouts** — see §9 for the other two (`Isaac-G1-Pick-Stage1-v0`, `Isaac-G1-Pick-Stage2-v0`), which use different, less adversarial anchor positions for curriculum training.
 
 ---
 
@@ -105,31 +112,42 @@ No observation noise is added (`enable_corruption = False`). All positions are e
 
 ## 5. Reward Function
 
-> **Rewritten from source on 2026-07-30.** The previous version of this section only
-> covered `compute_task_reward` and the 5 penalty terms — **6 terms total**. The
-> active config on `umar/g1-pick-no-topdown` has **8 reward terms**: it also carries
-> two grasp-goal pose-mimicking terms (`grasp_goal_palm`, `grasp_goal_hand`) that this
-> section previously omitted entirely, and `compute_task_reward` itself is called with
-> different parameters on this branch (`use_posture=False`, `pose_gated_success=True`)
-> than the version originally documented here. Everything below is verified against the
-> current `g1_pick_env_cfg.py` and `mdp/grasp_goal.py`.
+> **Rewritten from source on 2026-07-30, updated 2026-08-13, updated 2026-08-19.** The
+> 2026-07-30 pass added `grasp_goal_palm`/`grasp_goal_hand`/`grasp_reach` (previously
+> undocumented) and the `use_posture=False, pose_gated_success=True` parameterization.
+> The 2026-08-13 pass added `target_object_accel` (weight $-5.0$), a direct penalty on
+> the cube's own sudden velocity change, added as a checkpoint-5500+ regression fix
+> (§5.3). The 2026-08-19 pass adds two more terms — **`joint_speed`** (§5.3) and
+> **`sustained_reach_bonus`** (§5.5, new) — for **12 reward terms total** as of this
+> update. Everything below is verified against the current `g1_pick_env_cfg.py`.
+>
+> **This section documents the full/destination weights** — i.e. what each term's
+> mechanism is and what it's weighted once fully phased in. As of 2026-08-19 this
+> environment is mid-way through a **from-scratch 5-phase curriculum** (see §9) where
+> most terms are deliberately weight-zeroed until their phase arrives — the table below
+> shows destination weights, not necessarily what's active in any specific run right now.
+> `RewardsCfg`'s own inline comments in `g1_pick_env_cfg.py` are the source of truth for
+> current-phase weights; each zeroed param carries a `# target: X -- Phase N` comment.
 
 All reward terms are computed every control step (30 Hz) and summed with their configured
-weight.
+weight (when active for the current curriculum phase — see the note above).
 
 ### 5.0 Term overview
 
-| Term | Weight | Role |
+| Term | Destination weight | Role |
 |---|---:|---|
 | `task_reward` | $1.0$ | reach + grasp + lift + pose-gated success — §5.1 |
 | `grasp_goal_palm` | $2.0$ | pulls the palm toward the UltraDexGrasp goal pose — §5.2.1 |
 | `grasp_goal_hand` | $1.0$ | pulls the 6 finger joints toward the goal hand shape, gated on palm proximity — §5.2.2 |
-| `action_smoothness` | $-3.0$ | penalizes jerky actions / high joint velocity |
+| `grasp_reach` | $1.0$ | pulls each fingertip toward its own contact point on the cube — §5.2.4 |
+| `action_smoothness` | $-3.0$ | penalizes jerky actions / high joint velocity (rate + L2, not speed — see `joint_speed`) |
+| `joint_speed` | $-1.0$ | tanh-bounded penalty on raw joint speed — §5.3 |
 | `fingertip_impact` | $-2.0$ | penalizes sudden hand-body acceleration (slams) |
 | `distractor_accel` | $-3.0$ | penalizes sudden distractor acceleration (bumps) |
+| `target_object_accel` | $-5.0$ | penalizes sudden TARGET CUBE velocity change — regression fix, §5.3 |
+| `sustained_reach_bonus` | $10.0$ | sparse bonus for holding a close reach — §5.5 |
 | `distractor_off_tray` | $-10.0$ | per-step penalty while any distractor sits below tray height |
 | `distractor_drop` | $-100.0$ | one-time penalty (+ termination) if any distractor falls off the table |
-| `grasp_reach` | $1.0$ | pulls each fingertip toward its own contact point on the cube — §5.2.4 |
 
 **Two different bodies are both informally "the palm" in this codebase — keep them
 distinct:**
@@ -466,19 +484,64 @@ $$
 
 | Term | Weight | Formula | Purpose |
 |---|---:|---|---|
-| `action_smoothness` | $-3.0$ | $0.005\sum_i(a_i-a_i^{\text{prev}})^2 + 0.001\sum_j \dot q_j^2$ | penalizes jerky actions and joint velocity |
+| `action_smoothness` | $-3.0$ | $0.005\sum_i(a_i-a_i^{\text{prev}})^2$ | penalizes jerky actions (rate + L2 only — joint velocity moved to `joint_speed` below, 2026-08-19) |
+| `joint_speed` | $-1.0$ | $\tanh\!\big(\textstyle\sum_j \dot q_j^2 \,/\, 3000\big)$ | tanh-bounded "never move fast" prior — see rationale below |
 | `fingertip_impact` | $-2.0$ | $\dfrac{1}{6}\sum_{k=1}^{6}\tanh\!\big(\lVert\Delta \mathbf{v}_{\text{tip},k}\rVert/3.0\big)$ | penalizes sudden hand-body acceleration (slam/jab) |
 | `distractor_accel` | $-3.0$ | $\dfrac{1}{10}\sum_{d=1}^{10}\tanh\!\big(\lVert\Delta \mathbf{v}_d\rVert/2.0\big)$ | penalizes bumping/knocking distractors |
+| `target_object_accel` | $-5.0$ | $\tanh\!\big(\lVert\Delta \mathbf{v}_{\text{cube}}\rVert/2.0\big)$ | penalizes sudden TARGET CUBE velocity change (a violent "throw" can otherwise satisfy the soft `is_grasped` gate for a few post-impact frames and pay out lift/success reward without a real grasp — this closes that loophole directly, independent of what `is_grasped` reads at that instant; see the docstring on `target_object_acceleration_penalty` in `g1_pick_env_cfg.py` for the full root-cause writeup of the checkpoint-5450→5500 collapse this was added to fix) |
 | `distractor_off_tray` | $-10.0$ | $\sum_{d=1}^{10}\mathbb{1}[z_d < 0.835]$ | per-step, accumulates while any distractor sits off the tray |
 | `distractor_drop` | $-100.0$ | $\mathbb{1}[\exists\, d: z_d < 0.600]$ | one-time; episode also terminates |
+
+**Weight scale, for context**: `target_object_accel` ($-5.0$) is deliberately the largest of the impact-style penalties (vs. $-2.0$/$-3.0$ for `fingertip_impact`/`distractor_accel`) so that a "hit it hard" exploit strategy can't out-earn the penalty for triggering it.
+
+**`joint_speed`'s tanh bound, and why it matters beyond "encourage/discourage" (2026-08-19).**
+This term used to be a raw, unbounded quadratic (`sum(joint_vel²) * 0.001`, weight $-1.0$).
+An inference-time reward-breakdown plot on checkpoint 150 of the first from-scratch
+curriculum attempt showed it spiking to **$-35$ per step** during aggressive flailing —
+$\sum \dot q_j^2 \approx 35{,}000$ — roughly 35-70x larger than every other active term
+(`task_reward` capped near $0.6$). The fix isn't a bigger weight; an unbounded outlier this
+large inflates return *variance* enough to corrupt the critic's value predictions (and
+therefore GAE advantage estimates), and triggers PPO's adaptive-KL learning-rate schedule
+to throttle down (since large noisy advantages risk destabilizing updates) — actively
+slowing learning of *everything*, not just discouraging the fast motion it targets.
+Bounding it with the same `tanh` pattern every other impact-style penalty here already
+uses puts it on the same footing as `task_reward` instead of drowning it out.
+`threshold=3000` is a starting value (saturates near raw$\approx 9000$, well below the
+observed $35{,}000$ worst case) — tune after seeing how training responds, not a measured
+optimum.
 
 ### 5.4 Full per-step reward
 
 $$
 R = 1.0\, r_{\text{task}} \;+\; 2.0\, r_{\text{palm}} \;+\; 1.0\, r_{\text{hand}} \;+\; 1.0\, r_{\text{grasp\_reach}}
-\;-\; 3.0\, p_{\text{smooth}} \;-\; 2.0\, p_{\text{impact}} \;-\; 3.0\, p_{\text{accel}}
+\;+\; 10.0\, r_{\text{sustained\_reach}}
+\;-\; 3.0\, p_{\text{smooth}} \;-\; 1.0\, p_{\text{joint\_speed}} \;-\; 2.0\, p_{\text{impact}} \;-\; 3.0\, p_{\text{accel}} \;-\; 5.0\, p_{\text{target\_accel}}
 \;-\; 10.0\, p_{\text{off\_tray}} \;-\; 100.0\, p_{\text{drop}}
 $$
+
+### 5.5 Sustained-reach bonus — `sustained_reach_bonus` (weight $10.0$, added 2026-08-19)
+
+Paired with the `sustained_reach` termination (§6): the fingertip centroid (same signal as
+`reach_rew`, §5.1.2) must stay within $0.10$m of the cube for $30$ *consecutive* control
+steps ($\approx 1$s at 30Hz) for either to fire. `sustained_reach_termination` tracks the
+consecutive-steps counter (it always runs — `TerminationManager.compute()` isn't
+weight-gated the way `RewardManager.compute()` is) and caches the resulting boolean on the
+env; `sustained_reach_bonus_reward` reads that same-step cache
+(`ManagerBasedRLEnv.step()` calls `termination_manager.compute()` **before**
+`reward_manager.compute()`, so the cache is always current when the reward term reads it).
+
+$$
+r_{\text{sustained\_reach}} = \mathbb{1}\big[\text{counter} \ge 30\big], \qquad
+\text{counter} \leftarrow \begin{cases} \text{counter} + 1 & \lVert \bar{\mathbf p}_{\text{tip}} - \mathbf p_c \rVert < 0.10 \\ 0 & \text{otherwise} \end{cases}
+$$
+
+**Motivation**: Phase 1 (reach-only) previously had no positive-outcome termination at
+all — every episode ended via `time_out` or `target_dropped`, so a policy that reached
+the cube and immediately drifted away again looked identical, reward-wise, to one that
+never reached at all. This gives "reach and *hold*" its own genuine success signal and
+episode boundary. `distance_threshold=0.10`m and `hold_steps=30` and `weight=10.0` are
+starting defaults (the user's own suggested range was "10 or 20") — tune after seeing how
+often it fires in practice.
 
 ---
 
@@ -492,6 +555,7 @@ Episodes end when any of the following occur:
 | `target_lifted` | **Success** | Target cube `z > 1.134 m` (~29 cm above tray) |
 | `target_dropped` | Failure | Target cube `z < 0.600 m` (fell off table) |
 | `distractor_dropped` | Failure | ANY of the 10 distractors `z < 0.600 m` |
+| `sustained_reach` | **Success** (added 2026-08-19) | Fingertip centroid within `0.10`m of the cube for `30` consecutive control steps (~1s) — see §5.5 |
 
 **Episode length**: 8 seconds → 960 physics steps (120 Hz) → **240 control steps** (4× decimation).
 
@@ -504,8 +568,10 @@ Episodes end when any of the following occur:
 | Physics timestep | 1/120 s (120 Hz) |
 | Control decimation | 4 (policy runs at 30 Hz) |
 | Episode length | 8 s (240 control steps) |
-| Parallel environments (train) | 4096 |
-| Parallel environments (eval) | 64 |
+| Parallel environments (train, class default) | 4096 — `SceneCfg(num_envs=4096, ...)` in `G1RightArmLiftEnvCfg_V2` |
+| Parallel environments (eval, `*_PLAY` variants) | 64 |
+
+**Note:** `train.py`'s `--num_envs` CLI flag overrides the class default above — every training run so far has been launched with `--num_envs 2048`, not the class's 4096. If you invoke `train.py` without `--num_envs`, you'll get 4096 instead, which changes throughput/VRAM footprint and effective batch size.
 | Solver position iterations (robot) | 32 |
 | Solver position iterations (objects) | 16 |
 | Cube contact offset | 0.005 m |
@@ -532,32 +598,68 @@ The ±10 cm / ±5 cm target jitter forces the policy to generalize across a work
 
 ## 9. Curriculum
 
-The curriculum operates on two independent axes: **training phase** (reward gating) and **clutter difficulty** (number of active distractors).
+> **Rewritten 2026-08-13 — the previous version of this section described a mechanism
+> that does not actually run.** `PickingCurriculumScheduler` (`mdp/curriculum.py`) and
+> `reset_clutter_based_on_difficulty` (`mdp/events.py`) both exist as library code, with
+> logic matching what used to be documented here almost verbatim — but **no `CurriculumCfg`
+> is ever assigned on any registered env cfg class**, so the scheduler is never instantiated
+> and the difficulty score never leaves 0. Even if it were wired up, the reward-term names
+> it looks for (`reaching_target`, `lifting_target`, `declutter`, `pick_success`) don't
+> exist in the current `RewardsCfg` (§5) — those names predate the terms that actually
+> exist today (`task_reward`, `grasp_goal_palm`, `grasp_goal_hand`, `grasp_reach`, etc.).
+> Treat both files as designed-but-orphaned code, not active behavior, unless someone
+> wires a `CurriculumCfg` back in and renames the reward terms to match.
+>
+> **What actually runs today is a manual, 3-stage curriculum over separate registered gym
+> tasks** — you pick the difficulty by choosing `--task`, not by anything the environment
+> adjusts on its own mid-run.
 
-### 9a. Phase-Based Reward Gating (3 phases)
+### 9a. The three registered distractor-difficulty tasks
 
-The `PickingCurriculumScheduler` monitors rolling episode reward statistics and gates reward terms on/off.
+| gym task ID | Env cfg class | Distractor layout | Distance to cube (nominal) |
+|---|---|---|---|
+| `Isaac-G1-Pick-Stage1-v0` | `G1RightArmLiftEnvCfg_V2_Stage1` | 5 distractors in a tight ring around the cube, other 5 parked on the table margins (out of the way, still in the observation space) | ring: 5.0 cm to cube, 6.8 cm to each other |
+| `Isaac-G1-Pick-Stage2-v0` | `G1RightArmLiftEnvCfg_V2_Stage2` | all 10 distractors in a tight 3×4 grid centered on the cube (2 grid cells nearest the cube left empty) | every distractor's nearest neighbor: 6.0 cm; cube's nearest distractor: 7.3 cm |
+| `Isaac-G1-Pick-v0` / `Isaac-G1-Pick-Play-v0` | `G1RightArmLiftEnvCfg_V2` / `_PLAY` | all 10 distractors at the original fixed adversarial-clutter anchors (§2) | 7.0 – 18.0 cm, clustered close to the approach path |
 
-| Phase | Trigger | Newly Enabled Reward Terms |
-|-------|---------|---------------------------|
-| **0** — Reaching only | Start of training | `reaching_target` |
-| **1** — Grasping + Lifting + Clutter | Mean reaching reward/step ≥ 0.4 over last 500 episodes | `lifting_target` (×5.0), `declutter` (×2.0) |
-| **2** — Full pick | Mean lifting reward/step ≥ 0.75 over last 500 episodes | `pick_success` (×1.0) |
+Each `*-Play-v0` variant is identical to its training counterpart except `num_envs=64`, for lower-footprint eval/inference. Every `RewardsCfg`/`TerminationsCfg`/`ObservationsCfg` term (§5, §6, §4) is shared across all three — only the distractor `init_state.pos` values (and, for Stage 1 only, which distractors `distractor_off_tray` applies to — see the class docstring) differ between them.
 
-Minimum history of 50 completed episodes required before any phase transition.
+**Usage pattern**: train (or resume) against one task, then launch a fresh run resuming from the previous stage's checkpoint but pointed at the next `--task`. There's no automatic promotion — advancing stages is a manual decision made by watching TensorBoard (episode reward / success-rate curves flattening), not a fixed iteration count or a script.
 
-### 9b. Clutter Difficulty (0–60 scale)
+### 9b. Empty / no-obstruction baseline
 
-Each environment tracks an individual difficulty score. It increments by 1 on a successful pick (cube lifted above 15 cm) and decrements by 1 on failure (or holds with `promotion_only=True`), clamped to [0, 60].
+`Isaac-G1-Pick-Empty-v0` / `-Play-v0` (added 2026-08-13, `G1RightArmLiftEnvCfg_V2_Empty`):
+all 10 distractors relocated to the table margins — present in the scene and the
+96-dim observation space (so nothing about the observation shape changes when a later
+phase moves them back onto the tray), just physically out of the reach/grasp workspace.
+This is the base environment for the from-scratch reward curriculum's Phases 1-4 (§9c).
 
-| Difficulty Range | Active Distractors on Tray |
-|-----------------|---------------------------|
-| 0 – 29 | 0 (all hidden below table at z = −5 m) |
-| 30 – 39 | 1–2 (random) |
-| 40 – 49 | 3–5 (random) |
-| 50 – 60 | 5–7 (random) |
+### 9c. From-scratch 5-phase reward curriculum (started 2026-08-13)
 
-Distractor activation is staggered: distractor N activates at difficulty ≥ 30 + (N−1)×10. All inactive distractors are teleported to z = −5 m so they cannot interfere.
+Separate from — and orthogonal to — the distractor-difficulty tasks in §9a/9b: rather
+than warm-starting from a pre-trained checkpoint (as every run before this one did, see
+`working_models/`), this trains fresh from a random initialization, introducing reward
+terms one phase at a time so a training stall can be attributed to a specific,
+just-added term instead of an opaque multi-term reward from step one. Implemented
+entirely via `RewardsCfg` weights/params in `g1_pick_env_cfg.py` (each currently-zeroed
+one carries a `# target: X -- Phase N` comment) — no RewTerms are added or removed
+between phases, only their weights change, and advancing is a manual decision (watch
+TensorBoard, not a fixed iteration count).
+
+| Phase | Task | Adds |
+|---|---|---|
+| 1 | `Isaac-G1-Pick-Empty-v0` | `task_reward` (reach_weight=1.0 only) + `action_smoothness` + `joint_speed` + `distractor_accel` (inert — no distractors nearby) + `target_object_accel` + `sustained_reach_bonus`/`sustained_reach` termination |
+| 2 | `Isaac-G1-Pick-Empty-v0` | `task_reward.grasp_weight` (thumb/finger proximity) |
+| 3 | `Isaac-G1-Pick-Empty-v0` | `grasp_goal_palm`/`grasp_goal_hand`/`grasp_reach` (UltraDexGrasp pose mimicking) + `task_reward.pose_gated_success=True` |
+| 4 | `Isaac-G1-Pick-Empty-v0` | `task_reward.lift_weight`/`success_weight` |
+| 5 | `Stage1-v0` → `Stage2-v0` → `Isaac-G1-Pick-v0` | `fingertip_impact`, `distractor_off_tray`, `distractor_drop`, and the distractor layout itself ramps through §9a's three stages |
+
+**`target_object_accel` and `sustained_reach_bonus` are Phase-1 additions, not
+originally planned there** (2026-08-19 revision): `target_object_accel` was moved up
+from Phase 4 after a reward-breakdown plot (§5.5, §5.3) showed `reach_rew` can be
+exploited by disturbing the cube even with `lift_weight`/`success_weight` still at 0 —
+the exploit doesn't need lift/success to be reachable. `sustained_reach_bonus` was added
+because Phase 1-4 previously had no positive-outcome termination at all.
 
 ---
 

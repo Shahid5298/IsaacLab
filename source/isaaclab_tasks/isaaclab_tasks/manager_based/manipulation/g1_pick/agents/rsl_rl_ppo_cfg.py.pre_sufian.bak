@@ -12,13 +12,6 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 class G1PickPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 32
     max_iterations = 5000
-    # "[Sufian Plan]" 2026-08-27: hard-clip policy actions to [-1, 1]. This was previously
-    # UNSET (i.e. None -- no clipping at all), which was verified by measurement, not
-    # assumed: action_mag_probe.py found the trained policy sustaining mean |action| 1.32
-    # with 67% of actions above 1.0 and a peak of 4.65. With scale=0.3 and
-    # use_default_offset=True that is up to ~1.4 rad of commanded offset per joint, far
-    # outside the range the action scale was designed around.
-    clip_actions = 1.0
     save_interval = 50
     experiment_name = "g1_pick"
     # Phase 4 v3 (2026-08-21, REWARD_CURRICULUM_LOG.md "[Phase 4 v3]"): "rnd_state" points

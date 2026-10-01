@@ -129,6 +129,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             "step_trigger": lambda step: step == 0,
             "video_length": args_cli.video_length,
             "disable_logger": True,
+            "fps": 15,  # env runs at 30 control Hz; halved so playback isn't too fast to follow
         }
         print("[INFO] Recording videos during training.")
         print_dict(video_kwargs, nesting=4)

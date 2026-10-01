@@ -3,11 +3,11 @@
 Draws, every step, in the viewer / recorded video, for every env:
   - a coordinate FRAME at the goal grasp pose (position + orientation from the
     32-grasp library, live-tracked to the cube)
-  - a ghost hand at the GOAL pose: cyan/BLUE collision spheres (the same ones
-    `grasp_selection`'s optimizer and `mdp.grasp_reach_reward` use)
-  - a second ghost hand at the ROBOT'S ACTUAL live pose/joints: ORANGE spheres,
-    same sphere set, FK'd to the real hand instead of the goal -- lets you see at
-    a glance how closely the sim hand is actually mimicking the target shape
+  - a ghost hand at the GOAL pose: the real Inspire-hand visual meshes, FK'd to the
+    goal's joint configuration and anchored at the goal root pose, translucent and
+    color-tinted (bright red as of 2026-08-21, was green) so it reads clearly against
+    the actual (naturally-rendered, opaque) robot hand. No separate ghost is drawn for
+    the actual hand -- it's already visible as the real robot mesh.
 
 Also prints the palm→goal distance to the console, and (env 0 only) saves two
 diagnostic graphs after the run: palm pose error over the episode, and each
@@ -55,6 +55,44 @@ parser.add_argument("--episodes", type=int, default=0,
                          "--video_length). --video_length still applies as an upper bound.")
 parser.add_argument("--single_episode", action="store_true", default=False,
                     help="Shorthand for --episodes 1.")
+parser.add_argument("--no_markers", action="store_true", default=False,
+                    help="Skip drawing the goal-frame coordinate-axis overlay -- for a 'plain' "
+                         "video using this same script's episode-counting, instead of "
+                         "approximating episode count via --video_length in the generic play.py. "
+                         "Independent of --no_ghost_mesh and the always-on goal_centroid dot -- "
+                         "see those for the other two goal-visualization layers.")
+parser.add_argument("--no_ghost_mesh", action="store_true", default=False,
+                    help="Skip drawing the translucent green ghost-hand mesh at the goal pose "
+                         "(added 2026-08-21). Independent of --no_markers (the coordinate frame) "
+                         "-- the goal_centroid red dot stays on regardless of either flag.")
+parser.add_argument("--no_hold_after_success", action="store_true", default=False,
+                    help="By default this script disables the target_lifted termination (in "
+                         "THIS script's own env_cfg instance only -- never touches a live "
+                         "training run's config) so a successful episode keeps running to the "
+                         "natural timeout instead of cutting the instant the cube crosses the "
+                         "success height. That's normally what you want for watching playback "
+                         "(see the hold, not just the instant of crossing). Pass this flag to "
+                         "restore the immediate-termination-on-success behavior instead.")
+parser.add_argument("--tray_distractors", action="store_true", default=False,
+                    help="Restore the ORIGINAL tray-clutter distractor layout (positions right "
+                         "around the cube's own spawn, physically in the hand's approach path) "
+                         "instead of the table-margin layout the live env_cfg's __post_init__ "
+                         "currently applies for no-interference training. Scoped to THIS "
+                         "script's own env_cfg instance only -- never touches a live training "
+                         "run's config.")
+parser.add_argument("--table_distractors", action="store_true", default=False,
+                    help="Move all 10 distractors to the table margins (the 'empty env' / "
+                         "no-interference layout used before the live env_cfg default was "
+                         "switched back to full tray clutter) -- for an 'empty env' baseline "
+                         "comparison. Scoped to THIS script's own env_cfg instance only.")
+parser.add_argument("--name_prefix", type=str, default="rl-video",
+                    help="Prefix for the recorded video filename (gym.wrappers.RecordVideo "
+                         "writes '<name_prefix>-step-0.mp4'). Set this to something unique "
+                         "(e.g. include the checkpoint number) when running multiple "
+                         "instances of this script in parallel against the same log_dir --"
+                         "the default 'rl-video' collides across concurrent runs, and one "
+                         "run's rename can steal the file out from under another's (found "
+                         "2026-08-19 running two parallel checkpoint-eval batches).")
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
@@ -153,6 +191,39 @@ class GoalHandGhost:
         d = np.load(_VALID_NPZ, allow_pickle=True)
         self.T = d["T_usdbase_urdfbase"] if "T_usdbase_urdfbase" in d else np.eye(4)
         self.n = len(self.spheres)
+        self.mesh_links = self._parse_urdf_visual_meshes(_URDF)  # link -> abs .glb path
+
+    @staticmethod
+    def _parse_urdf_visual_meshes(path):
+        """link_name -> absolute path of its visual mesh, as a USD file.
+
+        The URDF points at .glb files, which USD's Sdf.Layer can't open directly
+        (no glTF file-format plugin registered) -- so this resolves to the
+        pre-converted cache in grasp_sampler/mesh_cache/ (built once via
+        scripts/tools/convert_mesh.py) instead of the raw .glb path.
+        All visual origins in this URDF are identity (checked directly), so no
+        extra per-link visual offset is needed on top of the link FK transform.
+        """
+        root_dir = os.path.dirname(path)
+        mesh_cache = os.path.join(_HERE, "mesh_cache")
+        out = {}
+        for link in ET.parse(path).getroot().findall("link"):
+            vis = link.find("visual")
+            if vis is None:
+                continue
+            mesh = vis.find("geometry/mesh")
+            if mesh is None:
+                continue
+            glb_name = os.path.splitext(os.path.basename(mesh.get("filename")))[0]
+            usd_path = os.path.join(mesh_cache, f"{glb_name}.usd")
+            if not os.path.isfile(usd_path):
+                raise FileNotFoundError(
+                    f"No cached USD mesh for link '{link.get('name')}' at {usd_path}. "
+                    f"Run scripts/tools/convert_mesh.py on the .glb files in "
+                    f"{os.path.join(root_dir, 'meshes', 'visual')} first."
+                )
+            out[link.get("name")] = usd_path
+        return out
 
     @staticmethod
     def _parse_urdf(path):
@@ -204,32 +275,61 @@ class GoalHandGhost:
             out[i] = (Tlink @ np.array([c[0], c[1], c[2], 1.0]))[:3]
         return out
 
+    def link_world_poses(self, goal_pos_w, goal_quat_w, q6, link_order):
+        """World (pos(3,), quat_wxyz(4,)) for each link in link_order, for the mesh ghost."""
+        link_poses = self._fk_all(np.asarray(q6, float))
+        goal = self.adjusted_goal_mat(goal_pos_w, goal_quat_w)
+        base = goal @ self.T
+        positions = np.zeros((len(link_order), 3))
+        quats = np.zeros((len(link_order), 4))
+        for i, link in enumerate(link_order):
+            Tlink = base @ link_poses.get(link, np.eye(4))
+            positions[i] = Tlink[:3, 3]
+            quats[i] = R.from_matrix(Tlink[:3, :3]).as_quat(scalar_first=True)
+        return positions, quats
 
-def _make_markers():
+
+def _make_markers(mesh_links: dict[str, str]):
     # goal pose as an RGB coordinate frame (shows target orientation)
     frame_cfg = FRAME_MARKER_CFG.copy()
     frame_cfg.prim_path = "/Visuals/goal_frame"
     frame_cfg.markers["frame"].scale = (0.10, 0.10, 0.10)
     goal_frame = VisualizationMarkers(frame_cfg)
 
-    # ghost hand at the GOAL: cyan/blue unit sphere prototype, instanced per collision sphere
-    ghost = VisualizationMarkers(VisualizationMarkersCfg(
-        prim_path="/Visuals/goal_hand",
-        markers={"s": sim_utils.SphereCfg(
-            radius=1.0,  # scaled per-instance to each sphere's radius
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.85, 0.9), opacity=0.55),
-        )},
+    # ghost hand at the GOAL: the REAL Inspire-hand visual meshes (not collision spheres),
+    # one USD-referenced .glb prototype per link, translucent green so it reads clearly
+    # against the actual (naturally-rendered, opaque) robot hand. No ghost is drawn for the
+    # actual hand -- it's already visible as the real robot mesh, a synthetic overlay for it
+    # would be redundant. (Briefly tried bright red + higher opacity on 2026-08-21, reverted
+    # the same day -- the user found the full mesh+frame overlay hard to read; see the
+    # separate goal_centroid marker below instead, a single bright-red dot at the goal palm
+    # position, kept on regardless of --no_markers.)
+    link_order = list(mesh_links.keys())
+    ghost_mesh = VisualizationMarkers(VisualizationMarkersCfg(
+        prim_path="/Visuals/goal_hand_mesh",
+        markers={
+            link: sim_utils.UsdFileCfg(
+                usd_path=mesh_links[link],
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.15, 0.9, 0.25), opacity=0.5),
+            )
+            for link in link_order
+        },
     ))
-    # same sphere set, but FK'd to the robot's ACTUAL live joint state/pose -- lets you see
-    # at a glance how well the real hand's shape matches the goal ghost above.
-    ghost_actual = VisualizationMarkers(VisualizationMarkersCfg(
-        prim_path="/Visuals/actual_hand",
-        markers={"s": sim_utils.SphereCfg(
-            radius=1.0,
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.55, 0.1), opacity=0.65),
-        )},
+
+    # Simple bright-red dot at the goal palm position (2026-08-21) -- a much easier-to-read
+    # stand-in for "where is the goal" than the full ghost mesh/frame, per the user's
+    # explicit request. Always drawn, independent of --no_markers (which still gates only
+    # goal_frame/ghost_mesh below).
+    goal_centroid_marker = VisualizationMarkers(VisualizationMarkersCfg(
+        prim_path="/Visuals/goal_centroid",
+        markers={
+            "centroid": sim_utils.SphereCfg(
+                radius=0.015,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), opacity=1.0),
+            )
+        },
     ))
-    return goal_frame, ghost, ghost_actual
+    return goal_frame, ghost_mesh, goal_centroid_marker, link_order
 
 
 @hydra_task_config(args_cli.task, args_cli.agent)
@@ -244,6 +344,45 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     log_dir = os.path.dirname(resume_path)
     env_cfg.log_dir = log_dir
 
+    if not args_cli.no_hold_after_success:
+        # This env_cfg instance belongs only to this script's own gym.make() call below -- a
+        # live training process builds its own separate instance from the same registry entry,
+        # so disabling a termination here cannot affect it. Without this, target_lifted ends
+        # env 0's episode (and the vec-env auto-resets it) on the SAME step the cube first
+        # crosses _SUCCESS_Z, so there is no way to "keep watching" after that point within the
+        # normal step loop -- the only way to see the hold is to not terminate on it at all,
+        # letting the episode run to the time_out termination instead.
+        env_cfg.terminations.target_lifted = None
+
+    if args_cli.tray_distractors:
+        # Original per-distractor spawn positions from SceneCfg (before the V2 __post_init__
+        # override relocates them to the table margins) -- ring 1 (0.32-0.42, +/-0.08-0.12)
+        # sits directly in the approach path to the cube at [0.35, 0.0], ring 3 further out.
+        # Same tray height (_OBJ_INIT_Z = 0.845) all ten originally shared.
+        _ORIGINAL_TRAY_POS = {
+            1: (0.38, 0.08), 2: (0.38, -0.08), 3: (0.42, 0.0), 4: (0.32, 0.12), 5: (0.32, -0.12),
+            6: (0.48, 0.12), 7: (0.48, -0.12), 8: (0.28, 0.0), 9: (0.52, 0.0), 10: (0.35, 0.18),
+        }
+        _ORIGINAL_TRAY_Z = 0.845
+        for i in range(1, 11):
+            d_cfg = getattr(env_cfg.scene, f"distractor_{i}")
+            x, y = _ORIGINAL_TRAY_POS[i]
+            d_cfg.init_state.pos = (x, y, _ORIGINAL_TRAY_Z)
+
+    if args_cli.table_distractors:
+        # No-interference / "empty env" layout: all 10 distractors on the table margins, clear
+        # of the tray and the cube's approach path entirely. Same positions used before the live
+        # env_cfg default was switched back to full tray clutter.
+        _TABLE_DISTRACTOR_POS = {
+            1: (0.16, -0.45), 2: (0.28, -0.45), 3: (0.40, -0.45), 4: (0.52, -0.45), 5: (0.64, -0.45),
+            6: (0.16, 0.45), 7: (0.28, 0.45), 8: (0.40, 0.45), 9: (0.52, 0.45), 10: (0.64, 0.45),
+        }
+        _TABLE_REST_Z = 0.825
+        for i in range(1, 11):
+            d_cfg = getattr(env_cfg.scene, f"distractor_{i}")
+            x, y = _TABLE_DISTRACTOR_POS[i]
+            d_cfg.init_state.pos = (x, y, _TABLE_REST_Z)
+
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
 
     if args_cli.video:
@@ -252,7 +391,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
         env.metadata["render_fps"] = args_cli.video_fps
         env = gym.wrappers.RecordVideo(env, video_folder=os.path.join(log_dir, "videos", "play_markers"),
                                        step_trigger=lambda step: step == 0,
-                                       video_length=args_cli.video_length, disable_logger=True)
+                                       video_length=args_cli.video_length, disable_logger=True,
+                                       name_prefix=args_cli.name_prefix)
 
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
@@ -260,14 +400,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     runner.load(resume_path)
     policy = runner.get_inference_policy(device=env.unwrapped.device)
 
-    goal_frame, ghost, ghost_actual = _make_markers()
     hand_viz = GoalHandGhost()
+    goal_frame, ghost_mesh, goal_centroid_marker, ghost_link_order = _make_markers(hand_viz.mesh_links)
     num_envs = env.unwrapped.num_envs
-    # one ghost hand's worth of sphere scales, tiled once per env (constant across steps)
-    ghost_scales = torch.tensor(
-        np.tile(np.repeat(hand_viz.radii[:, None], 3, axis=1), (num_envs, 1)),
-        dtype=torch.float32, device=env.unwrapped.device,
-    )
+    n_links = len(ghost_link_order)
+    # which prototype (link) each of the num_envs*n_links mesh instances is -- constant
+    # across steps: env 0's 13 links, then env 1's 13 links, etc.
+    ghost_marker_indices = np.tile(np.arange(n_links), num_envs)
     robot = env.unwrapped.scene["robot"]
     fingertip_body_ids = [robot.body_names.index(n) for n in _FINGERTIP_BODIES]
 
@@ -283,6 +422,16 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     episode_boundaries = []  # step indices (in the logged history) where an episode ended
     episode_count = 0
 
+    # env-0 per-term reward history, for the reward-breakdown-over-episode plot (added
+    # 2026-08-19). Keyed by RewardManager.active_terms so it automatically tracks whatever
+    # terms are actually configured (including any that are weight-zeroed for the current
+    # curriculum phase -- those just log as a flat 0 line, which is itself a useful sanity
+    # check that they're genuinely inactive).
+    reward_term_names = list(env.unwrapped.reward_manager.active_terms)
+    hist_reward_terms = {name: [] for name in reward_term_names}
+    hist_reward_total = []
+    reward_episode_boundaries = []
+
     obs = env.get_observations()
     timestep = 0
     while simulation_app.is_running():
@@ -291,11 +440,40 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
             actions = policy(obs)
             obs, _, dones, _ = env.step(actions)
 
+        # Episode counting is independent of the goal-mimicking diagnostics below: IsaacLab's
+        # RewardManager SKIPS calling a term's function entirely when its weight is 0.0 (a
+        # documented "micro-optimization" in reward_manager.py), so if grasp_goal_palm is
+        # zeroed (e.g. during an early from-scratch curriculum phase), _grasp_goal_term never
+        # gets cached on the env and `term` below stays None for the whole run -- which used
+        # to mean episode_count never incremented and --episodes never triggered the early
+        # stop (discovered 2026-08-19 when a Phase-1 checkpoint's episode counter stuck at 0
+        # and the run silently continued to --video_length instead of stopping at 4 episodes).
+        episode_ended_this_step = args_cli.episodes > 0 and bool(dones[0].item())
+        if episode_ended_this_step:
+            episode_count += 1
+            # reward_episode_boundaries marks indices into hist_reward_total (which is
+            # appended EVERY step, unlike hist_palm_pos_err below which skips reset steps --
+            # so this needs its own boundary list, taken before this step's reward gets
+            # appended, same convention as episode_boundaries' "mark where the NEXT ep starts").
+            reward_episode_boundaries.append(len(hist_reward_total))
+
+        # Per-term reward logging (env 0). RewardManager.compute() runs INSIDE env.step(),
+        # strictly before any auto-reset, so _step_reward/_reward_buf here are always for the
+        # transition that just happened -- no reset-timing discontinuity to guard against
+        # (contrast with the palm/finger pose history below, which DOES need the
+        # episode_ended_this_step skip since those read post-reset robot/object state).
+        rm = env.unwrapped.reward_manager
+        step_reward_0 = rm._step_reward[0].cpu().numpy()  # (num_terms,), already weight-applied
+        for name, val in zip(reward_term_names, step_reward_0):
+            hist_reward_terms[name].append(float(val))
+        hist_reward_total.append(float(rm._reward_buf[0].item()))
+
         # the reward term caches the goal-sampler instance on the env after step 1
         term = getattr(env.unwrapped, "_grasp_goal_term", None)
         if term is not None:
             goal_pos = term.goal_pos_w
             goal_quat = term.goal_quat_w
+            goal_centroid_marker.visualize(translations=goal_pos)  # always on, see _make_markers
             palm_pos = robot.data.body_pos_w[:, term._palm_body_idx]
             dist = torch.norm(palm_pos - goal_pos, dim=1)
             # palm -> cube center distance
@@ -309,39 +487,49 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
             q_err = torch.norm(q_now - term.goal_hand_q, dim=1)          # rad, L2 over 6 joints
             q_err_per = (q_now - term.goal_hand_q).abs()                 # per-joint |error|
 
-            # ghost hand at the goal, for EVERY env: FK the collision spheres to each
+            # ghost hand at the goal, for EVERY env: FK the mesh links (for the visual) and
+            # the collision spheres (for the numeric penetration diagnostic below) to each
             # env's own goal config. CPU numpy loop per env (GoalHandGhost is a single-
             # hand, single-pose visualizer) -- fine at diagnostic-video env counts.
+            # ACTUAL hand (no ghost drawn -- it's already the real, naturally-rendered robot
+            # mesh -- but its collision-sphere FK is still needed for the penetration check).
             goal_pos_np = goal_pos.cpu().numpy()
             goal_quat_np = goal_quat.cpu().numpy()
             goal_hand_q_np = term.goal_hand_q.cpu().numpy()
-            # ACTUAL hand: same sphere set, FK'd to the robot's real live pose/joints instead
             actual_palm_pos_np = palm_pos.cpu().numpy()
             actual_palm_quat_np = palm_quat.cpu().numpy()
             actual_q_np = q_now.cpu().numpy()
-            all_centers, all_adj_quats, all_actual_centers = [], [], []
+            all_adj_quats, all_actual_centers = [], []
+            all_link_pos, all_link_quat = [], []
             for e in range(num_envs):
                 gp_e, gq_e = goal_pos_np[e], goal_quat_np[e]
-                all_centers.append(hand_viz.world_centers(gp_e, gq_e, goal_hand_q_np[e]))
+                lp, lq = hand_viz.link_world_poses(gp_e, gq_e, goal_hand_q_np[e], ghost_link_order)
+                all_link_pos.append(lp)
+                all_link_quat.append(lq)
                 all_adj_quats.append(
                     R.from_matrix(hand_viz.adjusted_goal_mat(gp_e, gq_e)[:3, :3]).as_quat(scalar_first=True)
                 )
                 all_actual_centers.append(
                     hand_viz.world_centers(actual_palm_pos_np[e], actual_palm_quat_np[e], actual_q_np[e])
                 )
-            centers = np.concatenate(all_centers, axis=0)  # (num_envs * n_spheres, 3)
-            adj_quats = np.stack(all_adj_quats, axis=0)    # (num_envs, 4)
+            link_pos = np.concatenate(all_link_pos, axis=0)   # (num_envs * n_links, 3)
+            link_quat = np.concatenate(all_link_quat, axis=0)  # (num_envs * n_links, 4)
+            adj_quats = np.stack(all_adj_quats, axis=0)        # (num_envs, 4)
             actual_centers = np.concatenate(all_actual_centers, axis=0)
 
-            goal_frame.visualize(
-                translations=goal_pos,
-                orientations=torch.tensor(adj_quats, dtype=torch.float32, device=env.unwrapped.device))
-            ghost.visualize(
-                translations=torch.tensor(centers, dtype=torch.float32, device=env.unwrapped.device),
-                scales=ghost_scales)
-            ghost_actual.visualize(
-                translations=torch.tensor(actual_centers, dtype=torch.float32, device=env.unwrapped.device),
-                scales=ghost_scales)
+            # ghost_mesh (translucent green hand silhouette at the goal) -- gated on its own
+            # flag (--no_ghost_mesh, added 2026-08-21) independent of --no_markers (the
+            # coordinate FRAME). goal_centroid_marker (the red dot) stays on regardless of
+            # either flag.
+            if not args_cli.no_ghost_mesh:
+                ghost_mesh.visualize(
+                    translations=torch.tensor(link_pos, dtype=torch.float32, device=env.unwrapped.device),
+                    orientations=torch.tensor(link_quat, dtype=torch.float32, device=env.unwrapped.device),
+                    marker_indices=ghost_marker_indices)
+            if not args_cli.no_markers:
+                goal_frame.visualize(
+                    translations=goal_pos,
+                    orientations=torch.tensor(adj_quats, dtype=torch.float32, device=env.unwrapped.device))
 
             # fingertip -> its own target contact point (grasp_reach_reward's signal, §5.2.4)
             tips_w = robot.data.body_pos_w[:, fingertip_body_ids]          # (N,5,3)
@@ -365,14 +553,14 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
             # episode just ended: IsaacLab auto-resets INSIDE env.step() when done fires, so
             # everything read above already reflects the NEXT episode's reset state, not the
             # terminal moment of this one -- logging it would put a false spike/discontinuity.
-            episode_ended_this_step = args_cli.episodes > 0 and bool(dones[0].item())
+            # (episode_ended_this_step and episode_count are computed/incremented above, right
+            # after env.step() -- independent of this term-diagnostics block existing at all.)
             if not episode_ended_this_step:
                 hist_palm_pos_err.append(dist[0].item())
                 hist_palm_orient_err.append(np.degrees(orient_err[0].item()))
                 hist_finger_dist.append(finger_dist[0].cpu().numpy() * 100.0)  # cm
                 hist_min_gap.append(min_gap0 * 100.0)  # cm
             else:
-                episode_count += 1
                 episode_boundaries.append(len(hist_palm_pos_err))  # mark where the NEXT ep starts
 
             if timestep % 15 == 0:
@@ -421,6 +609,50 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     if args_cli.video:
         print(f"[goal] video written to {graph_dir}", flush=True)
 
+    # Shared helpers for BOTH diagnostic-graph blocks below -- moved out of the
+    # `if hist_palm_pos_err:` gate (2026-08-19) since the reward-breakdown plot needs them
+    # too, and hist_palm_pos_err stays empty whenever term is None (e.g. Phase 1/2 of the
+    # from-scratch curriculum, where grasp_goal_palm is weight-zeroed).
+    n_ep = f"{len(episode_boundaries) + 1} episode(s)" if episode_boundaries else "1 episode"
+
+    def _mark_episodes(ax):
+        for b in episode_boundaries:
+            ax.axvline(b, color="0.4", linestyle="--", linewidth=0.8, alpha=0.7)
+
+    # env-0 per-step reward breakdown: every active term as its own line, dotted TOTAL on top.
+    if hist_reward_total:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        os.makedirs(graph_dir, exist_ok=True)
+        r_steps = np.arange(len(hist_reward_total))
+        r_n_ep = (f"{len(reward_episode_boundaries) + 1} episode(s)"
+                  if reward_episode_boundaries else "1 episode")
+        fig_r, ax_r = plt.subplots(figsize=(12, 6))
+        # tab10 (matplotlib's default cycle) only has 10 colors -- with 11 reward terms, the
+        # 11th would silently wrap around and reuse the 1st term's color. tab20 has 20.
+        term_colors = plt.get_cmap("tab20").colors
+        for i, name in enumerate(reward_term_names):
+            ax_r.plot(r_steps, hist_reward_terms[name], label=name, linewidth=1.1,
+                       color=term_colors[i % len(term_colors)])
+        ax_r.plot(r_steps, hist_reward_total, label="TOTAL", color="black",
+                   linewidth=2.0, linestyle=":")
+        ax_r.axhline(0.0, color="0.6", linewidth=0.8)
+        ax_r.set_xlabel("control step")
+        ax_r.set_ylabel("per-step reward (weighted)")
+        ax_r.grid(alpha=0.25)
+        for b in reward_episode_boundaries:
+            ax_r.axvline(b, color="0.4", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax_r.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=4, fontsize=8)
+        ax_r.set_title(f"Per-step reward breakdown -- env 0, {r_n_ep} (dashed = episode reset, "
+                        f"dotted black = total)")
+        fig_r.tight_layout()
+        p_r = os.path.join(graph_dir, "reward_breakdown.png")
+        fig_r.savefig(p_r, dpi=120, bbox_inches="tight")
+        plt.close(fig_r)
+        print(f"[goal] graph written -> {p_r}", flush=True)
+
     # env-0 diagnostic graphs: palm pose error + per-fingertip contact-point distance
     if hist_palm_pos_err:
         import matplotlib
@@ -430,11 +662,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
         os.makedirs(graph_dir, exist_ok=True)
         steps = np.arange(len(hist_palm_pos_err))
         grasp_idx = int(term.goal_grasp_idx[0].item()) if term is not None else -1
-        n_ep = f"{len(episode_boundaries) + 1} episode(s)" if episode_boundaries else "1 episode"
-
-        def _mark_episodes(ax):
-            for b in episode_boundaries:
-                ax.axvline(b, color="0.4", linestyle="--", linewidth=0.8, alpha=0.7)
 
         fig, ax1 = plt.subplots(figsize=(11, 5))
         ax1.plot(steps, np.array(hist_palm_pos_err) * 100, color="tab:blue", linewidth=1.2)

@@ -1,18 +1,9 @@
-"""Collect grasping demonstrations for BC pretraining.
-
-A scripted oracle drives the real Isaac-G1-Pick-v0 environment through its own
-action pipeline: differential IK moves the palm through the BODex goal grasp
-(pregrasp -> grasp), the fingers close (pregrasp -> grasp -> squeeze), then the
-arm lifts. Every step records the policy observation (96-dim) and the ACTION
-that produces the commanded joint targets, i.e. a = (q_target - q_default)/scale,
-so the dataset is exactly policy-compatible for behavioral cloning.
-
-Episodes are kept only if the env's own success termination fires
-(cube above 1.134 m).
-
-Run:
-    conda activate env_isaaclab && source _isaac_sim/setup_conda_env.sh
-    python .../collect_demos.py --headless --num_envs 256 --episodes 2000
+"""Instrumented variant of collect_demos.py's oracle: runs a handful of episodes and
+prints, per phase transition, exactly WHERE the scripted grasp-execution fails --
+IK/reachability (does the palm reach the goal pose?), finger closure (do the coupled
+joints reach their commanded closed configuration?), or the lift itself (does a
+genuinely-closed hand still fail to lift?). Built after collect_demos.py returned 0/512
+successes, to find out which of those three it is.
 """
 import argparse
 import os
@@ -20,10 +11,8 @@ import os
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--num_envs", type=int, default=256)
-parser.add_argument("--episodes", type=int, default=2000, help="successful episodes to collect")
-parser.add_argument("--out", type=str,
-                    default=os.path.join(os.path.dirname(__file__), "grasp_dataset", "bc_demos.npz"))
+parser.add_argument("--num_envs", type=int, default=4)
+parser.add_argument("--episodes", type=int, default=2)
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 app_launcher = AppLauncher(args_cli)
@@ -46,13 +35,17 @@ HAND_JOINTS = [
     "R_thumb_proximal_yaw_joint", "R_thumb_proximal_pitch_joint", "R_index_proximal_joint",
     "R_middle_proximal_joint", "R_ring_proximal_joint", "R_pinky_proximal_joint",
 ]
+MIM_JOINTS = [
+    "R_thumb_intermediate_joint", "R_thumb_distal_joint", "R_index_intermediate_joint",
+    "R_middle_intermediate_joint", "R_ring_intermediate_joint", "R_pinky_intermediate_joint",
+]
 ARM_SCALE, HAND_SCALE = 0.3, 0.5
-PREGRASP_OFFSET = 0.08     # m back along the palm normal
-LIFT_HEIGHT = 0.35         # m above the grasp pose
-# phase ids
+PREGRASP_OFFSET = 0.08
+LIFT_HEIGHT = 0.35
 APPROACH, DESCEND, CLOSE, LIFT = 0, 1, 2, 3
 PHASE_BUDGET = {APPROACH: 90, DESCEND: 60, CLOSE: 45, LIFT: 999}
-CLOSE_STEPS = 45           # finger interpolation length inside CLOSE
+CLOSE_STEPS = 45
+_OBJ_INIT_Z = 0.845
 
 
 def main():
@@ -64,56 +57,52 @@ def main():
     N = args_cli.num_envs
 
     robot = uenv.scene["robot"]
-    goal_term = _get_goal_term(uenv)  # sample_grasp_goal event's term instance
+    obj = uenv.scene["target_object"]
+    goal_term = _get_goal_term(uenv)
     palm_idx = robot.body_names.index("R_hand_base_link")
+    fingertip_ids = [robot.body_names.index(n) for n in
+                     ["R_thumb_distal", "R_index_intermediate", "R_middle_intermediate",
+                      "R_ring_intermediate", "R_pinky_intermediate"]]
     arm_ids = torch.tensor([robot.joint_names.index(n) for n in ARM_JOINTS], device=device)
     hand_ids = torch.tensor([robot.joint_names.index(n) for n in HAND_JOINTS], device=device)
+    mim_ids = torch.tensor([robot.joint_names.index(n) for n in MIM_JOINTS], device=device)
     q_def = robot.data.default_joint_pos.clone()
     fixed_base = robot.is_fixed_base
     jac_body_idx = palm_idx - 1 if fixed_base else palm_idx
-    print(f"[demo] fixed_base={fixed_base}, palm body idx={palm_idx}", flush=True)
 
     phase = torch.zeros(N, dtype=torch.long, device=device)
     phase_step = torch.zeros(N, dtype=torch.long, device=device)
     y_axis = torch.tensor([0.0, 1.0, 0.0], device=device).expand(N, 3)
-
-    # per-env episode buffers on CPU
-    ep_obs = [[] for _ in range(N)]
-    ep_act = [[] for _ in range(N)]
-    ds_obs, ds_act, ds_len = [], [], []
-    n_success, n_fail = 0, 0
-
     obs = obs_dict["policy"]
+    n_done = 0
+    prev_phase = phase.clone()
 
     def ik_action(goal_pos, goal_quat):
-        """One damped-least-squares IK step toward the goal palm pose -> arm action."""
         palm_pos = robot.data.body_pos_w[:, palm_idx]
         palm_quat = robot.data.body_quat_w[:, palm_idx]
         pos_err, ax_err = compute_pose_error(palm_pos, palm_quat, goal_pos, goal_quat,
                                              rot_error_type="axis_angle")
-        err = torch.cat([pos_err, 0.5 * ax_err], dim=1).unsqueeze(-1)          # (N,6,1)
-        jac = robot.root_physx_view.get_jacobians()[:, jac_body_idx, :, :]     # (N,6,ndof)
-        J = jac[:, :, arm_ids]                                                 # (N,6,7)
+        err = torch.cat([pos_err, 0.5 * ax_err], dim=1).unsqueeze(-1)
+        jac = robot.root_physx_view.get_jacobians()[:, jac_body_idx, :, :]
+        J = jac[:, :, arm_ids]
         JT = J.transpose(1, 2)
         lam = 0.05
         dq = (JT @ torch.linalg.solve(J @ JT + lam**2 * torch.eye(6, device=device), err)).squeeze(-1)
         q_des = robot.data.joint_pos[:, arm_ids] + torch.clamp(dq, -0.15, 0.15)
-        return torch.clamp((q_des - q_def[:, arm_ids]) / ARM_SCALE, -1.0, 1.0)
+        return (q_des - q_def[:, arm_ids]) / ARM_SCALE, pos_err.norm(dim=1)
 
     step_count = 0
-    while n_success < args_cli.episodes:
+    while n_done < args_cli.episodes and step_count < 3000:
         goal_pos = goal_term.goal_pos_w
         goal_quat = goal_term.goal_quat_w
-        approach = quat_apply(goal_quat, y_axis)         # palm normal in world
+        approach = quat_apply(goal_quat, y_axis)
         pregrasp_pos = goal_pos - PREGRASP_OFFSET * approach
         lift_pos = goal_pos + torch.tensor([0.0, 0.0, LIFT_HEIGHT], device=device)
 
-        # arm target by phase
         tgt_pos = torch.where(phase.unsqueeze(1) == APPROACH, pregrasp_pos,
                   torch.where(phase.unsqueeze(1) >= LIFT, lift_pos, goal_pos))
-        arm_act = ik_action(tgt_pos, goal_quat)
+        arm_act, ik_err = ik_action(tgt_pos, goal_quat)
 
-        # finger target by phase
         alpha = (phase_step.float() / CLOSE_STEPS).clamp(0, 1).unsqueeze(1)
         q_pre, q_grasp, q_sq = goal_term.goal_hand_q_pre, goal_term.goal_hand_q, goal_term.goal_hand_q_squeeze
         close_q = torch.where(alpha < 0.6, q_pre + (alpha / 0.6) * (q_grasp - q_pre),
@@ -121,22 +110,35 @@ def main():
         fing_q = torch.where(phase.unsqueeze(1) < CLOSE, q_pre,
                  torch.where(phase.unsqueeze(1) == CLOSE, close_q, q_sq))
         hand_act = torch.clamp((fing_q - q_def[:, hand_ids]) / HAND_SCALE, -1.0, 1.0)
-
         action = torch.cat([arm_act, hand_act], dim=1)
-
-        # record BEFORE stepping (obs -> action pairing)
-        obs_cpu = obs.cpu().numpy()
-        act_cpu = action.cpu().numpy()
-        for i in range(N):
-            ep_obs[i].append(obs_cpu[i])
-            ep_act[i].append(act_cpu[i])
 
         obs_dict, _, terminated, truncated, _ = env.step(action)
         obs = obs_dict["policy"]
-        lifted = uenv.termination_manager.get_term("target_lifted")
         dones = (terminated | truncated)
 
-        # phase advancement
+        # print on phase transitions for env 0
+        if phase[0].item() == CLOSE and step_count % 30 == 0:
+            dq_arm = (robot.data.joint_pos[0, arm_ids] - q_def[0, arm_ids]).cpu().numpy()
+            print(f"[jnt] step={step_count} arm joint offset from DEFAULT (rad): {np.round(dq_arm,3)}", flush=True)
+            print(f"[jnt]   max|offset|={np.abs(dq_arm).max():.3f} rad  "
+                  f"(action scale 0.3 => |action| needed = {np.abs(dq_arm).max()/0.3:.2f})", flush=True)
+        if phase[0].item() != prev_phase[0].item() or step_count % 30 == 0:
+            names = {0: "APPROACH", 1: "DESCEND", 2: "CLOSE", 3: "LIFT"}
+            hand_q_actual = robot.data.joint_pos[0, hand_ids].cpu().numpy()
+            hand_q_target = fing_q[0].cpu().numpy()
+            mim_actual = robot.data.joint_pos[0, mim_ids].cpu().numpy()
+            tip_pos = robot.data.body_pos_w[0, fingertip_ids]
+            tip_dist = (tip_pos - obj.data.root_pos_w[0]).norm(dim=1).cpu().numpy() * 100 - 2.5
+            cube_z = obj.data.root_pos_w[0, 2].item()
+            print(f"[diag] step={step_count} env0 phase={names[phase[0].item()]} "
+                  f"ik_err={ik_err[0].item()*100:.2f}cm cube_z={cube_z*100:.2f}cm "
+                  f"(init={_OBJ_INIT_Z*100:.1f})", flush=True)
+            print(f"       hand_q_actual={np.round(hand_q_actual,2)}", flush=True)
+            print(f"       hand_q_target={np.round(hand_q_target,2)}", flush=True)
+            print(f"       mim_actual   ={np.round(mim_actual,2)}", flush=True)
+            print(f"       fingertip_surface_dist_cm={np.round(tip_dist,2)}", flush=True)
+        prev_phase = phase.clone()
+
         palm_pos = robot.data.body_pos_w[:, palm_idx]
         err = torch.norm(palm_pos - tgt_pos, dim=1)
         phase_step += 1
@@ -148,36 +150,17 @@ def main():
         phase = torch.where(advance, phase + 1, phase)
         phase_step = torch.where(advance, torch.zeros_like(phase_step), phase_step)
 
-        # flush finished episodes
         done_ids = torch.nonzero(dones).squeeze(-1).tolist()
+        if 0 in done_ids:
+            lifted = uenv.termination_manager.get_term("target_lifted")[0].item()
+            print(f"[diag] === env0 episode ended, lifted={lifted} ===", flush=True)
+            n_done += 1
         for i in done_ids:
-            if bool(lifted[i]):
-                ds_obs.append(np.array(ep_obs[i], dtype=np.float32))
-                ds_act.append(np.array(ep_act[i], dtype=np.float32))
-                ds_len.append(len(ep_obs[i]))
-                n_success += 1
-            else:
-                n_fail += 1
-            ep_obs[i], ep_act[i] = [], []
             phase[i] = APPROACH
             phase_step[i] = 0
 
         step_count += 1
-        if step_count % 120 == 0:
-            tot = max(n_success + n_fail, 1)
-            print(f"[demo] steps={step_count} success={n_success} fail={n_fail} "
-                  f"rate={n_success/tot:.1%}", flush=True)
-        if n_success + n_fail > 40 and n_success == 0 and step_count > 2000:
-            print("[demo] oracle never succeeds — aborting for debug", flush=True)
-            break
 
-    if ds_obs:
-        np.savez(args_cli.out,
-                 obs=np.concatenate(ds_obs), act=np.concatenate(ds_act),
-                 ep_len=np.array(ds_len))
-        tot = max(n_success + n_fail, 1)
-        print(f"[demo] saved {n_success} episodes ({sum(ds_len)} transitions, "
-              f"success rate {n_success/tot:.1%}) -> {args_cli.out}", flush=True)
     os._exit(0)
 
 

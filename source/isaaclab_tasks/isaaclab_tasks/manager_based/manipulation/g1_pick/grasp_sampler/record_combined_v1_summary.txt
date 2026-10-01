@@ -1,0 +1,347 @@
+############################################################
+# COMBINED v1 (dense field + PhysX contact, resumed from curriculum ckpt50) -- ALL-CHECKPOINT INFERENCE + RECORDING
+# run: 2026-08-30_08-43-40_combined_v1_from_curriculum_ckpt50
+# env: Isaac-G1-Pick-Empty-Play-v0  (empty -- distractors at table margins)
+# camera: zoomed (eye=[0.72,-0.42,1.02] lookat=[0.40,0.0,0.88])
+# generated: 2026-08-30 06:13:39
+############################################################
+
+================ ckpt 50 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +2.65 cm)
+thumb: min=+1.60cm mean=+4.95cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+index: min=+8.92cm mean=+13.00cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+8.78cm mean=+11.90cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+9.12cm mean=+11.93cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+9.56cm mean=+12.12cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose -0.03 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.06 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -1.06 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.31 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.31 cm
+cube rose : +0.00 cm
+follow ratio (cube/palm): 0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 100 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +0.89 cm)
+thumb: min=+0.81cm mean=+3.57cm  (0/64 envs actually touching, 1/64 within 1cm buffer)
+index: min=+3.87cm mean=+6.86cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+4.88cm mean=+7.29cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+4.71cm mean=+7.46cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+6.28cm mean=+8.86cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose -0.06 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.04 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.85 cm   cube rose +0.06 cm   cube max +2.00 cm   envs with cube >1cm up: 1/32
+  step 140  palm rose +0.51 cm   cube rose +0.06 cm   cube max +2.00 cm   envs with cube >1cm up: 1/32
+palm rose : +0.51 cm
+cube rose : +0.06 cm
+follow ratio (cube/palm): 0.123
+VERDICT: PARTIAL grip -- cube follows weakly, likely slipping.
+
+================ ckpt 150 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +1.17 cm)
+thumb: min=+0.36cm mean=+2.69cm  (0/64 envs actually touching, 10/64 within 1cm buffer)
+index: min=+4.28cm mean=+7.05cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+5.10cm mean=+7.14cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+5.54cm mean=+7.21cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+6.42cm mean=+8.58cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose -0.04 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.04 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.80 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.28 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.28 cm
+cube rose : +0.00 cm
+follow ratio (cube/palm): 0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 200 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +1.02 cm)
+thumb: min=+0.44cm mean=+2.52cm  (0/64 envs actually touching, 10/64 within 1cm buffer)
+index: min=+2.39cm mean=+6.65cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.85cm mean=+5.89cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.67cm mean=+6.12cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+4.76cm mean=+7.63cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose -0.10 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.13 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.53 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.33 cm   cube rose +0.00 cm   cube max +0.01 cm   envs with cube >1cm up: 0/32
+palm rose : +0.33 cm
+cube rose : +0.00 cm
+follow ratio (cube/palm): 0.001
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 250 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +0.85 cm)
+thumb: min=+0.38cm mean=+2.00cm  (0/64 envs actually touching, 25/64 within 1cm buffer)
+index: min=+3.26cm mean=+6.75cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+3.54cm mean=+5.76cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.71cm mean=+5.90cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+4.34cm mean=+7.57cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.07 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose +0.05 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.63 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.32 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.32 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): -0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 300 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +0.49 cm)
+thumb: min=+0.34cm mean=+1.91cm  (0/64 envs actually touching, 28/64 within 1cm buffer)
+index: min=+3.96cm mean=+6.75cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+4.46cm mean=+5.62cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+4.69cm mean=+5.79cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+5.62cm mean=+7.42cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.11 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose +0.15 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.67 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.16 cm   cube rose +0.00 cm   cube max +0.05 cm   envs with cube >1cm up: 0/32
+palm rose : +0.16 cm
+cube rose : +0.00 cm
+follow ratio (cube/palm): 0.014
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 350 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +0.43 cm)
+thumb: min=+0.36cm mean=+2.08cm  (0/64 envs actually touching, 29/64 within 1cm buffer)
+index: min=+3.85cm mean=+6.59cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+3.41cm mean=+5.46cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.83cm mean=+5.50cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+4.69cm mean=+7.15cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.17 cm   cube rose +0.00 cm   cube max +0.01 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose +0.14 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.42 cm   cube rose +0.02 cm   cube max +0.64 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.28 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.28 cm
+cube rose : +0.00 cm
+follow ratio (cube/palm): 0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 400 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +0.37 cm)
+thumb: min=+0.36cm mean=+1.85cm  (0/64 envs actually touching, 29/64 within 1cm buffer)
+index: min=+4.44cm mean=+6.51cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+4.08cm mean=+5.28cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.73cm mean=+5.39cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+4.74cm mean=+7.09cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.01 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.06 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.53 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.37 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.37 cm
+cube rose : +0.00 cm
+follow ratio (cube/palm): 0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 450 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +0.39 cm)
+thumb: min=+0.45cm mean=+2.23cm  (0/64 envs actually touching, 25/64 within 1cm buffer)
+index: min=+3.96cm mean=+6.52cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+3.89cm mean=+5.41cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.41cm mean=+5.32cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+3.88cm mean=+6.66cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose -0.01 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose +0.02 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.53 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.37 cm   cube rose +0.00 cm   cube max +0.03 cm   envs with cube >1cm up: 0/32
+palm rose : +0.37 cm
+cube rose : +0.00 cm
+follow ratio (cube/palm): 0.002
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 500 ================
+  [goal] penetration summary: 0/297 steps show min gap < 0 (worst = +0.15 cm)
+thumb: min=+0.37cm mean=+2.45cm  (0/64 envs actually touching, 22/64 within 1cm buffer)
+index: min=+3.64cm mean=+6.18cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+4.07cm mean=+5.08cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+4.09cm mean=+5.09cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+4.19cm mean=+6.50cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.10 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.02 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.38 cm   cube rose +0.00 cm   cube max +0.09 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.47 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.47 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): -0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 550 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +0.23 cm)
+thumb: min=+0.48cm mean=+2.24cm  (0/64 envs actually touching, 23/64 within 1cm buffer)
+index: min=+4.41cm mean=+6.61cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+4.16cm mean=+5.39cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+4.14cm mean=+5.29cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+4.72cm mean=+6.69cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.02 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.02 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.64 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.08 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.08 cm
+cube rose : +0.00 cm
+follow ratio (cube/palm): 0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 600 ================
+  [goal] penetration summary: 0/478 steps show min gap < 0 (worst = +0.06 cm)
+thumb: min=+0.52cm mean=+2.63cm  (0/64 envs actually touching, 16/64 within 1cm buffer)
+index: min=+3.53cm mean=+6.14cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+3.58cm mean=+5.06cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.73cm mean=+4.94cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+3.69cm mean=+6.23cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.06 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose +0.08 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.55 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.35 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.35 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): -0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 650 ================
+  [goal] penetration summary: 5/478 steps show min gap < 0 (worst = -0.30 cm)
+thumb: min=+0.64cm mean=+2.85cm  (0/64 envs actually touching, 8/64 within 1cm buffer)
+index: min=+2.81cm mean=+6.03cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+3.01cm mean=+4.93cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+3.36cm mean=+4.87cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+3.80cm mean=+6.14cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.00 cm   cube rose -0.00 cm   cube max +0.01 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.03 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.41 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.28 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.28 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): -0.002
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 700 ================
+  [goal] penetration summary: 95/478 steps show min gap < 0 (worst = -0.71 cm)
+thumb: min=+0.52cm mean=+2.85cm  (0/64 envs actually touching, 10/64 within 1cm buffer)
+index: min=+2.73cm mean=+5.71cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.19cm mean=+4.56cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+2.24cm mean=+4.47cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.80cm mean=+5.50cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose -0.07 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.12 cm   cube rose +0.00 cm   cube max +0.13 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.41 cm   cube rose +0.00 cm   cube max +0.13 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.03 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.03 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): 0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 750 ================
+  [goal] penetration summary: 44/478 steps show min gap < 0 (worst = -0.59 cm)
+thumb: min=+0.46cm mean=+3.10cm  (0/64 envs actually touching, 13/64 within 1cm buffer)
+index: min=+1.84cm mean=+5.79cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.18cm mean=+4.67cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+1.71cm mean=+4.52cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.13cm mean=+5.58cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.05 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.01 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.55 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.28 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.28 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): -0.002
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 800 ================
+  [goal] penetration summary: 98/356 steps show min gap < 0 (worst = -1.42 cm)
+thumb: min=+0.47cm mean=+2.34cm  (0/64 envs actually touching, 16/64 within 1cm buffer)
+index: min=+2.38cm mean=+5.70cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.34cm mean=+4.51cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+2.05cm mean=+4.38cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.37cm mean=+5.40cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.07 cm   cube rose +0.00 cm   cube max +0.16 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose +0.02 cm   cube rose +0.00 cm   cube max +0.16 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.53 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.32 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.32 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): -0.011
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 850 ================
+  [goal] penetration summary: 47/295 steps show min gap < 0 (worst = -1.01 cm)
+thumb: min=+0.56cm mean=+2.55cm  (0/64 envs actually touching, 18/64 within 1cm buffer)
+index: min=+2.14cm mean=+5.60cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+1.97cm mean=+4.45cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+2.00cm mean=+4.33cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.07cm mean=+5.26cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose -0.01 cm   cube rose +0.00 cm   cube max +0.09 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose +0.01 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.70 cm   cube rose +0.00 cm   cube max +0.01 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.17 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.17 cm
+cube rose : +0.00 cm
+follow ratio (cube/palm): 0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 900 ================
+  [goal] penetration summary: 60/478 steps show min gap < 0 (worst = -1.16 cm)
+thumb: min=+0.67cm mean=+2.94cm  (0/64 envs actually touching, 9/64 within 1cm buffer)
+index: min=+2.25cm mean=+5.38cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+1.64cm mean=+4.69cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+1.68cm mean=+4.57cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+1.95cm mean=+5.41cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose -0.05 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.06 cm   cube rose -0.00 cm   cube max +0.01 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.60 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.13 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.13 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): -0.005
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 950 ================
+  [goal] penetration summary: 49/478 steps show min gap < 0 (worst = -1.14 cm)
+thumb: min=+0.78cm mean=+3.28cm  (0/64 envs actually touching, 7/64 within 1cm buffer)
+index: min=+2.60cm mean=+5.72cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.18cm mean=+4.86cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+1.55cm mean=+4.68cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+1.85cm mean=+5.57cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.01 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.05 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.75 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.16 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.16 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): -0.020
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 1000 ================
+  [goal] penetration summary: 77/478 steps show min gap < 0 (worst = -1.12 cm)
+thumb: min=+0.78cm mean=+2.24cm  (0/64 envs actually touching, 9/64 within 1cm buffer)
+index: min=+2.15cm mean=+5.50cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.11cm mean=+4.67cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+1.66cm mean=+4.51cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+1.99cm mean=+5.47cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose +0.06 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose +0.04 cm   cube rose +0.01 cm   cube max +0.13 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.59 cm   cube rose +0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.32 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.32 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): -0.000
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+================ ckpt 1049 ================
+  [goal] penetration summary: 93/478 steps show min gap < 0 (worst = -1.00 cm)
+thumb: min=+0.65cm mean=+2.60cm  (0/64 envs actually touching, 7/64 within 1cm buffer)
+index: min=+2.26cm mean=+5.65cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+middle: min=+2.11cm mean=+4.58cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+ring: min=+1.83cm mean=+4.40cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+pinky: min=+2.64cm mean=+5.38cm  (0/64 envs actually touching, 0/64 within 1cm buffer)
+  step  35  palm rose -0.06 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step  70  palm rose -0.02 cm   cube rose +0.00 cm   cube max +0.04 cm   envs with cube >1cm up: 0/32
+  step 105  palm rose -0.60 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+  step 140  palm rose +0.42 cm   cube rose -0.00 cm   cube max +0.00 cm   envs with cube >1cm up: 0/32
+palm rose : +0.42 cm
+cube rose : -0.00 cm
+follow ratio (cube/palm): -0.001
+VERDICT: arm did not actually rise -- test inconclusive, raise --lift_delta
+
+
+## follow ratio >0.5 = grip holds; ~0 = no grip.
+## contact_check reads finger-link body ORIGINS (knuckle) -- compare across checkpoints, not vs zero.

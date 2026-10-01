@@ -18,10 +18,7 @@ _USD_PATH = os.path.join(
 G1_INSPIRE_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         usd_path=_USD_PATH,
-        # TRUE as of 2026-08-27 (Sufian plan): required for the ContactSensor that feeds
-        # the new fingertip-contact reward. Without this the spawned prims carry no contact
-        # reporter API and ContactSensor raises at init.
-        activate_contact_sensors=True,
+        activate_contact_sensors=False,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             retain_accelerations=False,
@@ -46,18 +43,7 @@ G1_INSPIRE_CFG = ArticulationCfg(
         # than against the 5cm cube, so it catches fast finger motion without being large
         # enough to blunt fine contact. rest_offset=0.0 matches the cube so fingers can still
         # fully close to the surface at rest.
-        # 2026-08-27 (Sufian plan): keep hand<->cube interpenetration to 1-2mm. Measured
-        # before this change: 445/478 steps interpenetrating, worst -1.71cm.
-        # rest_offset=0.002 makes the solver hold a 2mm resting separation (this is the knob
-        # that actually bounds penetration depth); contact_offset=0.02 widens the
-        # early-warning band so the solver engages well before the surfaces meet.
-        collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.02, rest_offset=0.002),
-        # NOTE: UsdFileCfg has no physics_material field (that is for primitive spawners
-        # like CuboidCfg) -- a USD asset carries its own materials. Hand friction is instead
-        # set at runtime by the randomize_hand_friction event (0.2-0.8), which writes
-        # material properties onto the asset's shapes directly and so overrides whatever the
-        # USD ships with. Before that event existed the hand's friction was never set at all,
-        # while the cube was deliberately given 1.0.
+        collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.01, rest_offset=0.0),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=False,
             solver_position_iteration_count=48,  # was 32 -- more accurate contact resolution
@@ -168,7 +154,7 @@ G1_INSPIRE_CFG = ArticulationCfg(
                     # unlike joint_speed_penalty (reward shaping) which only discourages fast
                     # motion probabilistically over training -- the two are complementary, see
                     # joint_speed_penalty's docstring.
-                    velocity_limit_sim=0.5,  # 0.6 -> 0.5 (Sufian plan: [-0.5, 0.5])
+                    velocity_limit_sim=0.6,
                 ),
         "left_hand": ImplicitActuatorCfg(
             joint_names_expr=["L_.*_joint"], # Uses USD Prefix
